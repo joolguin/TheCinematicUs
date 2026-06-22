@@ -1,0 +1,31 @@
+# Levanta backend (:3001) y frontend (:5173) en contenedores aislados.
+# Uso: docker compose up    (Ctrl+C para frenar; docker compose down para limpiar)
+services:
+  backend:
+    build: .
+    command: npm run dev:backend
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      # tsx watch usa chokidar; en bind-mounts de Mac hace falta polling.
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/frontend/node_modules
+      - /app/backend/node_modules
+
+  frontend:
+    build: .
+    command: npm run dev:frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/frontend/node_modules
+      - /app/backend/node_modules
