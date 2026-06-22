@@ -101,7 +101,7 @@ Monorepo con workspaces:
 ## 6. Flujo de la app (pantallas)
 
 1. **Gate de acceso** — passphrase compartida (env var del backend). Al validar, se guarda un token en `localStorage`. La URL es pública (Vercel); esto mantiene el link privado.
-2. **Elegir usuaria** — "Soy Jo 🐭" / "Soy Vale 🦆".
+2. **Elegir usuaria** — "Jo 🐭" / "Vale 🦆".
 3. **Importar watchlist** — textarea, un `Título (Año)` por línea. (En Fase 1 es manual; el scraping de Letterboxd es Fase 2.) El backend resuelve cada título contra TMDB y lo cachea.
 4. **Swipe** — mazo = **unión** de ambas listas (pozo común). Card mobile-first:
    - Poster ocupa ~60% del alto.
