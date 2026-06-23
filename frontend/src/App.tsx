@@ -3,11 +3,11 @@ import { useState } from 'react';
 import './index.css';
 import { Gate } from './screens/Gate';
 import { UserSelect } from './screens/UserSelect';
-import { Import } from './screens/Import';
+import { Watchlists } from './screens/Watchlists';
 import { Swipe } from './screens/Swipe';
 import type { UserName } from './types';
 
-type Screen = 'gate' | 'user' | 'import' | 'swipe';
+type Screen = 'gate' | 'user' | 'watchlists' | 'swipe';
 
 function storedUser(): UserName | null {
   const u = localStorage.getItem('user');
@@ -23,14 +23,14 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [user, setUser] = useState<UserName | null>(storedUser);
 
-  // Elegir usuaria: se recuerda para próximas recargas.
+  // Elegir usuaria: se recuerda. Las watchlists persisten, así que va directo a swipear.
   function pick(u: UserName) {
     localStorage.setItem('user', u);
     setUser(u);
-    setScreen('import');
+    setScreen('swipe');
   }
 
-  // Cambiar usuaria: olvida la elección y vuelve a seleccionar (pasa de nuevo por Import).
+  // Cambiar usuaria: olvida la elección y vuelve a seleccionar.
   function switchUser() {
     localStorage.removeItem('user');
     setUser(null);
@@ -39,7 +39,8 @@ export default function App() {
 
   if (screen === 'gate') return <Gate onOk={() => setScreen('user')} />;
   if (screen === 'user') return <UserSelect onPick={pick} />;
-  if (screen === 'import' && user) return <Import user={user} onDone={() => setScreen('swipe')} />;
-  if (screen === 'swipe' && user) return <Swipe user={user} onSwitch={switchUser} onImport={() => setScreen('import')} />;
+  if (screen === 'watchlists') return <Watchlists onDone={() => setScreen('swipe')} />;
+  if (screen === 'swipe' && user)
+    return <Swipe user={user} onSwitch={switchUser} onWatchlists={() => setScreen('watchlists')} />;
   return null;
 }
