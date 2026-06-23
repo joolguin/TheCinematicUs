@@ -30,6 +30,7 @@ create table sessions (
   id uuid primary key default gen_random_uuid(),
   mode text not null default 'pool',
   active boolean not null default true,
+  started_by text,
   created_at timestamptz not null default now()
 );
 
@@ -80,3 +81,23 @@ create policy "anon lee matches" on matches for select to anon using (true);
 
 -- Realtime: publicar matches para suscripción en vivo
 alter publication supabase_realtime add table matches;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración bloque crítico (2026-06-23) — idempotente.
+-- Aplicar sobre la DB ya existente sin recrear tablas.
+-- ─────────────────────────────────────────────────────────────
+
+-- 1) Dejar UNA sola sesión activa antes de crear el índice único.
+update sessions set active = false
+where active and id <> (
+  select id from sessions where active order by created_at desc limit 1
+);
+
+-- 2) Garantizar una sola sesión activa de ahí en adelante.
+create unique index if not exists one_active_session on sessions (active) where active;
+
+-- 3) Quién inició la noche (para el aviso en vivo).
+alter table sessions add column if not exists started_by text;
+
+-- 4) Publicar sessions en Realtime para detectar nuevas sesiones.
+alter publication supabase_realtime add table sessions;

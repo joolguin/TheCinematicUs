@@ -1,5 +1,5 @@
 // frontend/src/components/MatchOverlay.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
@@ -7,25 +7,29 @@ import { api, type Movie } from '../api';
 // Un match en cola para mostrar: el id del match + los datos de la peli.
 type Queued = { matchId: string; movie: Movie };
 
-// Registro local de matches ya mostrados en ESTE dispositivo (para no repetirlos).
-function getSeen(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem('seenMatches') ?? '[]')); }
+// Matches ya mostrados en ESTE dispositivo, scopeados por sesión (no se arrastran entre noches).
+function seenKey(sessionId: string) { return `seenMatches:${sessionId}`; }
+function getSeen(sessionId: string): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(seenKey(sessionId)) ?? '[]')); }
   catch { return new Set(); }
 }
-function markSeen(matchId: string) {
-  const s = getSeen();
+function markSeen(sessionId: string, matchId: string) {
+  const s = getSeen(sessionId);
   s.add(matchId);
-  localStorage.setItem('seenMatches', JSON.stringify([...s]));
+  localStorage.setItem(seenKey(sessionId), JSON.stringify([...s]));
 }
 
-// /matches devuelve [{ matchId, ...camposDePeli }]
-async function fetchMatches(): Promise<Queued[]> {
-  const { matches } = await api.get('/matches');
-  return (matches as (Movie & { matchId: string })[]).map((m) => ({ matchId: m.matchId, movie: m }));
+// /matches devuelve { sessionId, matches: [{ matchId, ...camposDePeli }] }
+async function fetchMatches(): Promise<{ sessionId: string; items: Queued[] }> {
+  const { sessionId, matches } = await api.get('/matches');
+  const items = (matches as (Movie & { matchId: string })[]).map((m) => ({ matchId: m.matchId, movie: m }));
+  return { sessionId, items };
 }
 
-export function MatchOverlay({ onCount, onChoose }: { onCount: () => void; onChoose: (m: Movie) => void }) {
+export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: string | null; onCount: () => void; onChoose: (m: Movie) => void }) {
   const [queue, setQueue] = useState<Queued[]>([]);
+  const sessionIdRef = useRef<string | null>(null);
+  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   function enqueue(items: Queued[]) {
     setQueue((q) => {
@@ -35,39 +39,43 @@ export function MatchOverlay({ onCount, onChoose }: { onCount: () => void; onCho
     });
   }
 
-  // Robustez: al entrar, encolar los matches de la sesión que todavía NO viste,
-  // aunque la otra se haya adelantado mientras no estabas en esta pantalla.
+  // Al entrar o al cambiar de sesión (noche nueva): limpiar la cola y encolar los no vistos.
   useEffect(() => {
+    if (!sessionId) return;
+    setQueue([]);
     let active = true;
-    fetchMatches().then((all) => {
+    fetchMatches().then(({ items }) => {
       if (!active) return;
-      const seen = getSeen();
-      enqueue(all.filter((q) => !seen.has(q.matchId)));
+      const seen = getSeen(sessionId);
+      enqueue(items.filter((q) => !seen.has(q.matchId)));
     });
     return () => { active = false; };
-  }, []);
+  }, [sessionId]);
 
-  // En vivo: cuando se crea un match, aparece al instante en ambas pantallas.
+  // En vivo: un match nuevo de ESTA sesión aparece al instante en ambas pantallas.
   useEffect(() => {
     const channel = supabase
       .channel('matches')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' },
         async (payload) => {
-          const matchId = (payload.new as any).id as string;
-          if (getSeen().has(matchId)) return;
-          const all = await fetchMatches();
-          const found = all.find((q) => q.matchId === matchId);
+          const current = sessionIdRef.current;
+          if (!current) return;
+          const row = payload.new as { id: string; session_id: string };
+          if (row.session_id !== current) return;     // match de otra sesión: ignorar
+          if (getSeen(current).has(row.id)) return;
+          const { items } = await fetchMatches();
+          const found = items.find((q) => q.matchId === row.id);
           if (found) { enqueue([found]); onCount(); }
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [onCount]);
+  }, []);
 
   const current = queue[0];
 
   function next() { setQueue((q) => q.slice(1)); }
-  function seguir() { if (current) markSeen(current.matchId); next(); }
-  function ver() { if (current) { markSeen(current.matchId); onChoose(current.movie); } next(); }
+  function seguir() { if (current && sessionId) markSeen(sessionId, current.matchId); next(); }
+  function ver() { if (current && sessionId) { markSeen(sessionId, current.matchId); onChoose(current.movie); } next(); }
 
   return (
     <AnimatePresence>

@@ -25,3 +25,31 @@ export async function recordSwipeAndDetectMatch(
   await supabase.from('matches').insert({ session_id: sessionId, movie_id: movieId });
   return { matched: true };
 }
+
+// Backstop de carrera: crea las filas de match que la detección directa pudo perder
+// si ambas likearon en el mismo instante. Idempotente vía unique(session_id, movie_id).
+export async function reconcileMatches(sessionId: string): Promise<void> {
+  const { data: likes } = await supabase
+    .from('swipes').select('movie_id, user_id')
+    .eq('session_id', sessionId).eq('liked', true);
+  if (!likes) return;
+
+  // Agrupar por peli contando usuarias DISTINTAS.
+  const usersByMovie = new Map<string, Set<string>>();
+  for (const { movie_id, user_id } of likes as { movie_id: string; user_id: string }[]) {
+    const set = usersByMovie.get(movie_id) ?? new Set<string>();
+    set.add(user_id);
+    usersByMovie.set(movie_id, set);
+  }
+
+  const matched = [...usersByMovie.entries()]
+    .filter(([, users]) => users.size >= 2)
+    .map(([movieId]) => movieId);
+
+  for (const movieId of matched) {
+    await supabase.from('matches').upsert(
+      { session_id: sessionId, movie_id: movieId },
+      { onConflict: 'session_id,movie_id', ignoreDuplicates: true },
+    );
+  }
+}
