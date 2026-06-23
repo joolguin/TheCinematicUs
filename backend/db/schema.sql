@@ -34,12 +34,13 @@ create table sessions (
   created_at timestamptz not null default now()
 );
 
+-- Pozo persistente por usuaria (NO scopeado por sesión).
+-- Las URLs de watchlist de Letterboxd se configuran por env (LETTERBOXD_URL_JO/_VALE).
 create table watchlist_items (
   id uuid primary key default gen_random_uuid(),
-  session_id uuid not null references sessions(id) on delete cascade,
   user_id uuid not null references users(id),
   movie_id uuid not null references movies(id),
-  unique (session_id, user_id, movie_id)
+  unique (user_id, movie_id)
 );
 
 create table swipes (
@@ -120,18 +121,18 @@ update users set avatar_url = null;
 
 -- ─────────────────────────────────────────────────────────────
 -- Migración watchlists Letterboxd (2026-06-23) — idempotente.
--- Aplicar sobre la DB existente.
+-- Para una DB EXISTENTE (con watchlist_items viejo scopeado por sesión).
+-- En una DB nueva el `create table` de arriba ya deja el estado final;
+-- estas sentencias son no-ops idempotentes.
+-- Las URLs de Letterboxd van por env (LETTERBOXD_URL_JO/_VALE), no en la DB.
 -- ─────────────────────────────────────────────────────────────
 
--- 1) Las URLs de watchlist de Letterboxd se configuran por env
---    (LETTERBOXD_URL_JO / LETTERBOXD_URL_VALE), no en la DB.
-
--- 2) Desacoplar watchlist_items de sesiones → pozo persistente por usuaria.
+-- Desacoplar watchlist_items de sesiones → pozo persistente por usuaria.
 alter table watchlist_items drop constraint if exists watchlist_items_session_id_fkey;
 -- el set viejo estaba scopeado por sesión; ya no aplica
 delete from watchlist_items;
 alter table watchlist_items drop column if exists session_id;
 
--- 3) Nueva unicidad: una fila por (usuaria, película).
+-- Nueva unicidad: una fila por (usuaria, película).
 create unique index if not exists watchlist_items_user_movie
   on watchlist_items (user_id, movie_id);
