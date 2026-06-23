@@ -26,10 +26,14 @@ export async function refreshWatchlistForUser(
   if (films.length === 0) return { count: 0, ok: false, error: 'scrape vacío' };
 
   // Resolver cada film (cache + TMDB) y deduplicar por movie_id.
-  const ids: string[] = [];
-  for (const f of films) {
-    const { id } = await resolveMovie(f.title, f.year);
-    ids.push(id);
+  let ids: string[] = [];
+  try {
+    for (const f of films) {
+      const { id } = await resolveMovie(f.title, f.year);
+      ids.push(id);
+    }
+  } catch (e: any) {
+    return { count: 0, ok: false, error: e.message };
   }
   const uniqueIds = [...new Set(ids)];
 

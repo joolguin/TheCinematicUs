@@ -62,11 +62,26 @@ describe('refreshWatchlistForUser', () => {
     const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
     expect(r).toEqual({ count: 0, ok: false, error: 'timeout' });
     expect(deleteMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it('falla si la usuaria no tiene URL', async () => {
     const r = await refreshWatchlistForUser('u1', null);
     expect(r.ok).toBe(false);
     expect(deleteMock).not.toHaveBeenCalled();
+  });
+
+  it('mantiene el set anterior si resolveMovie falla', async () => {
+    scrapeResult = [
+      { title: 'Drive', year: 2011 },
+      { title: 'Her', year: 2013 },
+    ];
+    const { resolveMovie } = await import('./movies.js');
+    (resolveMovie as any).mockRejectedValueOnce(new Error('tmdb down'));
+    const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('tmdb down');
+    expect(deleteMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
   });
 });
