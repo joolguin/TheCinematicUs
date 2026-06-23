@@ -19,6 +19,9 @@ export function Swipe({ user }: { user: UserName }) {
 
   useEffect(() => { api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck)); }, [user]);
 
+  // El contador arranca con el total real de matches de la sesión (no solo los de esta carga).
+  useEffect(() => { api.get('/matches').then((r) => setMatchCount(r.matches.length)); }, []);
+
   // Empezar una noche nueva: resetea el mazo (el match es efímero) y recarga.
   async function nuevaSesion() {
     await api.post('/session', {});
