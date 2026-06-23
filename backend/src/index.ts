@@ -7,7 +7,7 @@ import { supabase } from './db.js';
 import { parseTitleLine } from './tmdb.js';
 import { resolveMovie } from './movies.js';
 import { getActiveSession, createSession } from './sessions.js';
-import { recordSwipeAndDetectMatch } from './match.js';
+import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
 import { getUserByName } from './users.js';
 
 const app = express();
@@ -69,13 +69,14 @@ app.get('/deck', async (req, res) => {
   }
 });
 
-// Registra swipe y reporta si hubo match.
+// Registra swipe y reporta si hubo match. Reconcilia como backstop de carrera.
 app.post('/swipe', async (req, res) => {
   try {
     const { user, movieId, liked } = req.body as { user: string; movieId: string; liked: boolean };
     const { id: userId } = await getUserByName(user);
     const { id: sessionId } = await getActiveSession();
     const result = await recordSwipeAndDetectMatch(sessionId, userId, movieId, liked);
+    if (liked) await reconcileMatches(sessionId);
     res.json(result);
   } catch (e: any) {
     console.error('[error endpoint]', e);
@@ -83,26 +84,28 @@ app.post('/swipe', async (req, res) => {
   }
 });
 
-// Matches de la sesión activa, con datos de la peli para la lista.
+// Matches de la sesión activa, con datos de la peli. Reconcilia antes de leer (red de seguridad).
 app.get('/matches', async (_req, res) => {
   try {
     const { id: sessionId } = await getActiveSession();
+    await reconcileMatches(sessionId);
     const { data } = await supabase
       .from('matches').select('id, movies(*)').eq('session_id', sessionId)
       .order('created_at', { ascending: false });
-    // matchId identifica cada match (para que el frontend sepa cuáles ya mostró);
-    // el resto son los campos de la película.
-    res.json({ matches: (data ?? []).map((m: any) => ({ matchId: m.id, ...m.movies })) });
+    // sessionId: el frontend lo usa como baseline de la suscripción y para scopear los matches vistos.
+    // matchId: identifica cada match; el resto son los campos de la película.
+    res.json({ sessionId, matches: (data ?? []).map((m: any) => ({ matchId: m.id, ...m.movies })) });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
 
-// Nueva sesión = nueva noche, mazo reseteado.
-app.post('/session', async (_req, res) => {
+// Nueva sesión = nueva noche, mazo reseteado. Guarda quién la inició para el aviso en vivo.
+app.post('/session', async (req, res) => {
   try {
-    const s = await createSession();
+    const { user } = req.body as { user?: string };
+    const s = await createSession(user);
     res.json(s);
   } catch (e: any) {
     console.error('[error endpoint]', e);
