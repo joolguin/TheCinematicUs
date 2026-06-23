@@ -117,3 +117,23 @@ begin
 end $$;
 alter table users alter column avatar_url drop not null;
 update users set avatar_url = null;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración watchlists Letterboxd (2026-06-23) — idempotente.
+-- Aplicar sobre la DB existente.
+-- ─────────────────────────────────────────────────────────────
+
+-- 1) URL de watchlist pública por usuaria (se setea a mano).
+alter table users add column if not exists letterboxd_url text;
+update users set letterboxd_url = 'https://letterboxd.com/<jo>/watchlist/' where name = 'Jo';
+update users set letterboxd_url = 'https://letterboxd.com/<vale>/watchlist/' where name = 'Vale';
+
+-- 2) Desacoplar watchlist_items de sesiones → pozo persistente por usuaria.
+alter table watchlist_items drop constraint if exists watchlist_items_session_id_fkey;
+-- el set viejo estaba scopeado por sesión; ya no aplica
+delete from watchlist_items;
+alter table watchlist_items drop column if exists session_id;
+
+-- 3) Nueva unicidad: una fila por (usuaria, película).
+create unique index if not exists watchlist_items_user_movie
+  on watchlist_items (user_id, movie_id);

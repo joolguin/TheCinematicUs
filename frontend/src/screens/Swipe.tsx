@@ -12,7 +12,7 @@ const MatchesList = lazy(() =>
   import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
 );
 
-export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: () => void; onImport: () => void }) {
+export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwitch: () => void; onWatchlists: () => void }) {
   const [deck, setDeck] = useState<Movie[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [matchCount, setMatchCount] = useState(0);
@@ -109,6 +109,7 @@ export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: 
           <button onClick={onSwitch} className="text-xs text-neutral-500 underline">cambiar</button>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={onWatchlists} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm">🎬 Watchlists</button>
           <button onClick={confirmarNuevaSesion} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm">🔄 Nueva sesión</button>
           <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
         </div>
@@ -138,8 +139,8 @@ export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: 
                 Ver {matchCount} {matchCount === 1 ? 'match' : 'matches'}
               </button>
             )}
-            <div className="text-sm text-neutral-500">¿Sesión nueva o sin películas? Importa tu watchlist.</div>
-            <button onClick={onImport} className="rounded-lg bg-neutral-800 px-4 py-2 text-sm">Importar películas</button>
+            <div className="text-sm text-neutral-500">¿Sesión nueva o pozo vacío? Actualizá las watchlists.</div>
+            <button onClick={onWatchlists} className="rounded-lg bg-neutral-800 px-4 py-2 text-sm">Actualizar watchlists</button>
           </div>
         )}
       </div>
