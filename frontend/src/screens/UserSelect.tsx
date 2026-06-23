@@ -1,5 +1,5 @@
 // frontend/src/screens/UserSelect.tsx
-import { AVATARS, type UserName } from '../types';
+import { INITIALS, type UserName } from '../types';
 
 export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
   const users: UserName[] = ['Jo', 'Vale'];
@@ -13,7 +13,7 @@ export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
             onClick={() => onPick(u)}
             className="flex flex-col items-center gap-2 rounded-2xl bg-neutral-900 px-8 py-6 text-lg"
           >
-            <span className="text-5xl">{AVATARS[u]}</span>
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800 text-2xl font-semibold text-neutral-300">{INITIALS[u]}</span>
             {u}
           </button>
         ))}

@@ -85,7 +85,7 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4 p-6"
         >
-          <div className="text-4xl">🐭 ¡Match! 🦆</div>
+          <div className="text-4xl font-bold">¡Match!</div>
           {current.movie.poster_url && <img src={current.movie.poster_url} className="max-h-[50vh] rounded-xl" />}
           <h3 className="text-2xl font-semibold text-center">{current.movie.title}</h3>
           <div className="flex gap-4">

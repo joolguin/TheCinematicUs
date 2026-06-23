@@ -49,8 +49,7 @@ export function Swipe({ user }: { user: UserName }) {
           const nueva = payload.new as { id: string; started_by: string | null };
           if (nueva.id === sessionIdRef.current) return;       // ya es la sesión actual
           if (nueva.started_by === user) return;    // la inicié yo: ya hice soft reset local
-          const avatar = nueva.started_by === 'Vale' ? '🦆' : '🐭';
-          setAviso(`${avatar} ${nueva.started_by ?? 'Alguien'} empezó una noche nueva`);
+          setAviso(`${nueva.started_by ?? 'Alguien'} empezó una noche nueva`);
           softReset(nueva.id);
           setTimeout(() => setAviso(null), 4000);
         })
@@ -82,7 +81,7 @@ export function Swipe({ user }: { user: UserName }) {
         <div className="text-3xl">🎬 ¡Esta noche ven!</div>
         {chosen.poster_url && <img src={chosen.poster_url} className="max-h-[55vh] rounded-xl" />}
         <h2 className="text-2xl font-semibold">{chosen.title} {chosen.year && <span className="text-neutral-500">({chosen.year})</span>}</h2>
-        <div className="text-2xl">🐭 🍿 🦆</div>
+        <div className="text-2xl">🍿</div>
         <div className="flex gap-4 mt-2">
           <button onClick={() => setChosen(null)} className="rounded-lg bg-neutral-800 px-5 py-3">Volver a elegir</button>
           <button onClick={nuevaSesion} className="rounded-lg bg-rose-600 px-5 py-3 font-medium">Nueva sesión</button>
@@ -140,8 +139,16 @@ export function Swipe({ user }: { user: UserName }) {
 
       {top && (
         <div className="flex justify-center gap-8 py-4">
-          <button onClick={() => swipe(false)} className="h-16 w-16 rounded-full bg-neutral-800 text-2xl">👎</button>
-          <button onClick={() => swipe(true)} className="h-16 w-16 rounded-full bg-rose-600 text-2xl">👍</button>
+          <button onClick={() => swipe(false)} aria-label="Paso" className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+          <button onClick={() => swipe(true)} aria-label="Me gusta" className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-600">
+            <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
         </div>
       )}
 
