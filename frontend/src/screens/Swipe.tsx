@@ -1,9 +1,9 @@
 // frontend/src/screens/Swipe.tsx
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
 import type { UserName, PresenceStatus } from '../types';
+import { useSessionListener } from '../hooks';
 import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
@@ -21,7 +21,6 @@ export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: 
   const [deckLoaded, setDeckLoaded] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const sessionIdRef = useRef<string | null>(null);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
@@ -29,8 +28,6 @@ export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: 
   useEffect(() => {
     api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
   }, [user]);
-  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
-
   // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
   useEffect(() => {
     api.get('/matches').then((r) => { setMatchCount(r.matches.length); setSessionId(r.sessionId); });
@@ -49,21 +46,11 @@ export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: 
   }
 
   // En vivo: si la otra inicia una noche nueva, avisar y reacomodar.
-  useEffect(() => {
-    const channel = supabase
-      .channel('sessions')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sessions' },
-        (payload) => {
-          const nueva = payload.new as { id: string; started_by: string | null };
-          if (nueva.id === sessionIdRef.current) return;       // ya es la sesión actual
-          if (nueva.started_by === user) return;    // la inicié yo: ya hice soft reset local
-          setAviso(`${nueva.started_by ?? 'Alguien'} empezó una noche nueva`);
-          softReset(nueva.id);
-          setTimeout(() => setAviso(null), 4000);
-        })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  useSessionListener(user, sessionId, (newSessionId) => {
+    setAviso(`Empezó una noche nueva`);
+    softReset(newSessionId);
+    setTimeout(() => setAviso(null), 4000);
+  });
 
   const bumpCount = useCallback(() => setMatchCount((c) => c + 1), []);
 
