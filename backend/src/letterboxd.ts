@@ -37,3 +37,27 @@ export function parseWatchlistPage(html: string): ScrapedFilm[] {
   }
   return films;
 }
+
+const MAX_PAGES = 50; // tope de seguridad ante un bucle inesperado
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
+// Recorre las páginas de la watchlist hasta una vacía. Devuelve films deduplicados.
+export async function scrapeWatchlist(url: string): Promise<ScrapedFilm[]> {
+  const base = url.endsWith('/') ? url : url + '/';
+  const seen = new Map<string, ScrapedFilm>();
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const pageUrl = page === 1 ? base : `${base}page/${page}/`;
+    const res = await fetch(pageUrl, { headers: { 'User-Agent': USER_AGENT } });
+    if (!res.ok) break;
+    const films = parseWatchlistPage(await res.text());
+    if (films.length === 0) break;
+    for (const f of films) {
+      const key = `${f.title.toLowerCase()}|${f.year ?? ''}`;
+      if (!seen.has(key)) seen.set(key, f);
+    }
+  }
+  return [...seen.values()];
+}
