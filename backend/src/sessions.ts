@@ -20,10 +20,14 @@ export async function createSession(startedBy?: string): Promise<{ id: string }>
     .select('id').single();
   if (error) {
     if ((error as { code?: string }).code === '23505') {
-      const { data: active } = await supabase
-        .from('sessions').select('id').eq('active', true)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle();
-      if (active) return { id: active.id };
+      // Otra llamada concurrente ganó la carrera. Re-leer la activa; reintentar una vez
+      // si todavía no es visible.
+      for (let intento = 0; intento < 2; intento++) {
+        const { data: active } = await supabase
+          .from('sessions').select('id').eq('active', true)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (active) return { id: active.id };
+      }
     }
     throw error;
   }

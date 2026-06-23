@@ -1,21 +1,26 @@
 // backend/src/sessions.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let activeRow: any;       // lo que devuelve la lectura de la sesión activa
-let insertResult: any;    // { data, error } que devuelve el insert
+let activeRow: any;        // lectura por defecto de la sesión activa
+let activeReads: any[] | null; // si está seteado, se consume en orden (para probar reintentos)
+let insertResult: any;     // { data, error } que devuelve el insert
 const updateMock = vi.fn();
 const insertMock = vi.fn();
+
+// Devuelve la siguiente lectura de "sesión activa": consume la cola si existe,
+// si no usa activeRow.
+function readActive() {
+  if (activeReads && activeReads.length) return { data: activeReads.shift() };
+  return { data: activeRow };
+}
 
 vi.mock('./db.js', () => ({
   supabase: {
     from: () => ({
-      // select('id').eq('active', true).order().limit().maybeSingle()
       select: () => ({
-        eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: () => Promise.resolve({ data: activeRow }) }) }) }),
+        eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: () => Promise.resolve(readActive()) }) }) }),
       }),
-      // update({ active: false }).eq('active', true)
       update: (...a: any[]) => { updateMock(...a); return { eq: () => Promise.resolve({ error: null }) }; },
-      // insert({...}).select('id').single()
       insert: (...a: any[]) => { insertMock(...a); return { select: () => ({ single: () => Promise.resolve(insertResult) }) }; },
     }),
   },
@@ -25,6 +30,7 @@ import { getActiveSession, createSession } from './sessions.js';
 
 beforeEach(() => {
   activeRow = null;
+  activeReads = null;
   insertResult = { data: { id: 'nueva' }, error: null };
   updateMock.mockClear();
   insertMock.mockClear();
@@ -62,5 +68,17 @@ describe('createSession', () => {
     insertResult = { data: null, error: { code: '23505', message: 'duplicate' } };
     activeRow = { id: 'ganadora' };
     expect(await createSession()).toEqual({ id: 'ganadora' });
+  });
+
+  it('reintenta la lectura si la ganadora no es visible al primer intento', async () => {
+    insertResult = { data: null, error: { code: '23505', message: 'duplicate' } };
+    activeReads = [null, { id: 'ganadora' }]; // 1ra lectura vacía, 2da trae la ganadora
+    expect(await createSession()).toEqual({ id: 'ganadora' });
+  });
+
+  it('lanza si tras reintentar no hay sesión activa', async () => {
+    insertResult = { data: null, error: { code: '23505', message: 'duplicate' } };
+    activeReads = [null, null];
+    await expect(createSession()).rejects.toMatchObject({ code: '23505' });
   });
 });

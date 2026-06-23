@@ -46,10 +46,12 @@ export async function reconcileMatches(sessionId: string): Promise<void> {
     .filter(([, users]) => users.size >= 2)
     .map(([movieId]) => movieId);
 
-  for (const movieId of matched) {
-    await supabase.from('matches').upsert(
-      { session_id: sessionId, movie_id: movieId },
-      { onConflict: 'session_id,movie_id', ignoreDuplicates: true },
-    );
-  }
+  await Promise.all(
+    matched.map((movieId) =>
+      supabase.from('matches').upsert(
+        { session_id: sessionId, movie_id: movieId },
+        { onConflict: 'session_id,movie_id', ignoreDuplicates: true },
+      ),
+    ),
+  );
 }
