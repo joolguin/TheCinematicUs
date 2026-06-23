@@ -1,5 +1,5 @@
 // frontend/src/screens/Swipe.tsx
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
@@ -16,11 +16,13 @@ export function Swipe({ user }: { user: UserName }) {
   const [chosen, setChosen] = useState<Movie | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
 
   useEffect(() => { api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck)); }, [user]);
+  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
   useEffect(() => {
@@ -45,7 +47,7 @@ export function Swipe({ user }: { user: UserName }) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sessions' },
         (payload) => {
           const nueva = payload.new as { id: string; started_by: string | null };
-          if (nueva.id === sessionId) return;       // ya es la sesión actual
+          if (nueva.id === sessionIdRef.current) return;       // ya es la sesión actual
           if (nueva.started_by === user) return;    // la inicié yo: ya hice soft reset local
           const avatar = nueva.started_by === 'Vale' ? '🦆' : '🐭';
           setAviso(`${avatar} ${nueva.started_by ?? 'Alguien'} empezó una noche nueva`);
@@ -54,7 +56,9 @@ export function Swipe({ user }: { user: UserName }) {
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [sessionId, user]);
+  }, [user]);
+
+  const bumpCount = useCallback(() => setMatchCount((c) => c + 1), []);
 
   // Empezar una noche nueva: crea la sesión (queda quién la inició) y reacomoda localmente.
   async function nuevaSesion() {
@@ -141,7 +145,7 @@ export function Swipe({ user }: { user: UserName }) {
         </div>
       )}
 
-      <MatchOverlay sessionId={sessionId} onCount={() => setMatchCount((c) => c + 1)} onChoose={setChosen} />
+      <MatchOverlay sessionId={sessionId} onCount={bumpCount} onChoose={setChosen} />
       {showMatches && <MatchesList onClose={() => setShowMatches(false)} />}
     </div>
   );

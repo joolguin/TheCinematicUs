@@ -1,5 +1,5 @@
 // frontend/src/components/MatchOverlay.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
@@ -28,6 +28,8 @@ async function fetchMatches(): Promise<{ sessionId: string; items: Queued[] }> {
 
 export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: string | null; onCount: () => void; onChoose: (m: Movie) => void }) {
   const [queue, setQueue] = useState<Queued[]>([]);
+  const sessionIdRef = useRef<string | null>(null);
+  useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   function enqueue(items: Queued[]) {
     setQueue((q) => {
@@ -52,21 +54,22 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
 
   // En vivo: un match nuevo de ESTA sesión aparece al instante en ambas pantallas.
   useEffect(() => {
-    if (!sessionId) return;
     const channel = supabase
       .channel('matches')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' },
         async (payload) => {
+          const current = sessionIdRef.current;
+          if (!current) return;
           const row = payload.new as { id: string; session_id: string };
-          if (row.session_id !== sessionId) return;     // match de otra sesión: ignorar
-          if (getSeen(sessionId).has(row.id)) return;
+          if (row.session_id !== current) return;     // match de otra sesión: ignorar
+          if (getSeen(current).has(row.id)) return;
           const { items } = await fetchMatches();
           const found = items.find((q) => q.matchId === row.id);
           if (found) { enqueue([found]); onCount(); }
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [sessionId, onCount]);
+  }, []);
 
   const current = queue[0];
 
