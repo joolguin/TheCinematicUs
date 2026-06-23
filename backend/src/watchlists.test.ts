@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let scrapeResult: any;        // valor que devuelve scrapeWatchlist (o un Error a lanzar)
 const deleteMock = vi.fn();
 const insertMock = vi.fn();
+let deleteError: any = null;
+let insertError: any = null;
 
 vi.mock('./letterboxd.js', () => ({
   scrapeWatchlist: vi.fn(() =>
@@ -19,8 +21,8 @@ vi.mock('./movies.js', () => ({
 vi.mock('./db.js', () => ({
   supabase: {
     from: () => ({
-      delete: () => { deleteMock(); return { eq: () => Promise.resolve({ error: null }) }; },
-      insert: (...a: any[]) => { insertMock(...a); return Promise.resolve({ error: null }); },
+      delete: () => { deleteMock(); return { eq: () => Promise.resolve({ error: deleteError }) }; },
+      insert: (...a: any[]) => { insertMock(...a); return Promise.resolve({ error: insertError }); },
     }),
   },
 }));
@@ -31,6 +33,8 @@ beforeEach(() => {
   scrapeResult = [];
   deleteMock.mockClear();
   insertMock.mockClear();
+  deleteError = null;
+  insertError = null;
 });
 
 describe('refreshWatchlistForUser', () => {
@@ -69,6 +73,7 @@ describe('refreshWatchlistForUser', () => {
     const r = await refreshWatchlistForUser('u1', null);
     expect(r.ok).toBe(false);
     expect(deleteMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
   });
 
   it('mantiene el set anterior si resolveMovie falla', async () => {
@@ -83,5 +88,23 @@ describe('refreshWatchlistForUser', () => {
     expect(r.error).toBe('tmdb down');
     expect(deleteMock).not.toHaveBeenCalled();
     expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('falla sin vaciar el pozo cuando el delete da error', async () => {
+    scrapeResult = [{ title: 'Drive', year: 2011 }];
+    deleteError = { message: 'db connection lost' };
+    const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
+    expect(r).toEqual({ count: 0, ok: false, error: 'db connection lost' });
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('falla cuando el insert da error (delete ya ejecutado)', async () => {
+    scrapeResult = [{ title: 'Drive', year: 2011 }];
+    insertError = { message: 'constraint violation' };
+    const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
+    expect(r).toEqual({ count: 0, ok: false, error: 'constraint violation' });
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    expect(insertMock).toHaveBeenCalledTimes(1);
   });
 });

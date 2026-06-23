@@ -38,10 +38,13 @@ export async function refreshWatchlistForUser(
   const uniqueIds = [...new Set(ids)];
 
   // Reemplazo atómico-suficiente: borrar el set de la usuaria e insertar el nuevo.
-  await supabase.from('watchlist_items').delete().eq('user_id', userId);
-  await supabase
+  const { error: delErr } = await supabase.from('watchlist_items').delete().eq('user_id', userId);
+  if (delErr) return { count: 0, ok: false, error: delErr.message };
+
+  const { error: insErr } = await supabase
     .from('watchlist_items')
     .insert(uniqueIds.map((movie_id) => ({ user_id: userId, movie_id })));
+  if (insErr) return { count: 0, ok: false, error: insErr.message };
 
   return { count: uniqueIds.length, ok: true };
 }
