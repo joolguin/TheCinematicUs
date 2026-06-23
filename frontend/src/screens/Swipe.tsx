@@ -12,7 +12,7 @@ const MatchesList = lazy(() =>
   import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
 );
 
-export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void }) {
+export function Swipe({ user, onSwitch, onImport }: { user: UserName; onSwitch: () => void; onImport: () => void }) {
   const [deck, setDeck] = useState<Movie[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [matchCount, setMatchCount] = useState(0);
@@ -152,7 +152,7 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
               </button>
             )}
             <div className="text-sm text-neutral-500">¿Sesión nueva o sin películas? Importa tu watchlist.</div>
-            <button onClick={onSwitch} className="rounded-lg bg-neutral-800 px-4 py-2 text-sm">Importar películas</button>
+            <button onClick={onImport} className="rounded-lg bg-neutral-800 px-4 py-2 text-sm">Importar películas</button>
           </div>
         )}
       </div>

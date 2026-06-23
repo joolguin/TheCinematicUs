@@ -40,6 +40,6 @@ export default function App() {
   if (screen === 'gate') return <Gate onOk={() => setScreen('user')} />;
   if (screen === 'user') return <UserSelect onPick={pick} />;
   if (screen === 'import' && user) return <Import user={user} onDone={() => setScreen('swipe')} />;
-  if (screen === 'swipe' && user) return <Swipe user={user} onSwitch={switchUser} />;
+  if (screen === 'swipe' && user) return <Swipe user={user} onSwitch={switchUser} onImport={() => setScreen('import')} />;
   return null;
 }
