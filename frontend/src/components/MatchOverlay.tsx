@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
 
-export function MatchOverlay({ onCount }: { onCount: () => void }) {
+export function MatchOverlay({ onCount, onChoose }: { onCount: () => void; onChoose: (m: Movie) => void }) {
   const [movie, setMovie] = useState<Movie | null>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function MatchOverlay({ onCount }: { onCount: () => void }) {
           <h3 className="text-2xl font-semibold text-center">{movie.title}</h3>
           <div className="flex gap-4">
             <button onClick={() => setMovie(null)} className="rounded-lg bg-neutral-800 px-5 py-3">Seguir buscando</button>
-            <button onClick={() => setMovie(null)} className="rounded-lg bg-rose-600 px-5 py-3 font-medium">Ver esta</button>
+            <button onClick={() => { onChoose(movie); setMovie(null); }} className="rounded-lg bg-rose-600 px-5 py-3 font-medium">Ver esta</button>
           </div>
         </motion.div>
       )}
