@@ -1,19 +1,24 @@
 // frontend/src/screens/Swipe.tsx
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
-import type { UserName } from '../types';
+import type { UserName, PresenceStatus } from '../types';
+import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
-import { MatchesList } from '../components/MatchesList';
+// Se carga solo al abrir el modal de matches (no se necesita en el primer paint).
+const MatchesList = lazy(() =>
+  import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
+);
 
-export function Swipe({ user }: { user: UserName }) {
+export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void }) {
   const [deck, setDeck] = useState<Movie[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [matchCount, setMatchCount] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
   const [chosen, setChosen] = useState<Movie | null>(null);
+  const [deckLoaded, setDeckLoaded] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -21,7 +26,9 @@ export function Swipe({ user }: { user: UserName }) {
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
 
-  useEffect(() => { api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck)); }, [user]);
+  useEffect(() => {
+    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
+  }, [user]);
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
@@ -37,7 +44,8 @@ export function Swipe({ user }: { user: UserName }) {
     setMatchCount(0);
     setSessionId(id);
     x.set(0);
-    api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck));
+    setDeckLoaded(false);
+    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
   }
 
   // En vivo: si la otra inicia una noche nueva, avisar y reacomodar.
@@ -73,6 +81,7 @@ export function Swipe({ user }: { user: UserName }) {
   }
 
   const top = deck[0];
+  const myStatus: PresenceStatus = !deckLoaded ? 'en-linea' : deck.length > 0 ? 'swipeando' : 'termino';
 
   // Película elegida: pantalla final, en vez de caer en "terminaste tu mazo".
   if (chosen) {
@@ -108,12 +117,16 @@ export function Swipe({ user }: { user: UserName }) {
         </div>
       )}
       <header className="flex justify-between items-center py-2">
-        <span className="text-neutral-500">{user}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-neutral-500">{user}</span>
+          <button onClick={onSwitch} className="text-xs text-neutral-500 underline">cambiar</button>
+        </div>
         <div className="flex items-center gap-3">
           <button onClick={confirmarNuevaSesion} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm">🔄 Nueva sesión</button>
           <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
         </div>
       </header>
+      <PresenceBadge me={user} myStatus={myStatus} />
 
       <div className="flex-1 relative">
         {top ? (
@@ -153,7 +166,11 @@ export function Swipe({ user }: { user: UserName }) {
       )}
 
       <MatchOverlay sessionId={sessionId} onCount={bumpCount} onChoose={setChosen} />
-      {showMatches && <MatchesList onClose={() => setShowMatches(false)} />}
+      {showMatches && (
+        <Suspense fallback={null}>
+          <MatchesList onClose={() => setShowMatches(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

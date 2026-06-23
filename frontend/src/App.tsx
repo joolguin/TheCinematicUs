@@ -9,15 +9,37 @@ import type { UserName } from './types';
 
 type Screen = 'gate' | 'user' | 'import' | 'swipe';
 
+function storedUser(): UserName | null {
+  const u = localStorage.getItem('user');
+  return u === 'Jo' || u === 'Vale' ? u : null;
+}
+
+function initialScreen(): Screen {
+  if (!localStorage.getItem('passphrase')) return 'gate';
+  return storedUser() ? 'swipe' : 'user';
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>(
-    localStorage.getItem('passphrase') ? 'user' : 'gate',
-  );
-  const [user, setUser] = useState<UserName | null>(null);
+  const [screen, setScreen] = useState<Screen>(initialScreen);
+  const [user, setUser] = useState<UserName | null>(storedUser);
+
+  // Elegir usuaria: se recuerda para próximas recargas.
+  function pick(u: UserName) {
+    localStorage.setItem('user', u);
+    setUser(u);
+    setScreen('import');
+  }
+
+  // Cambiar usuaria: olvida la elección y vuelve a seleccionar (pasa de nuevo por Import).
+  function switchUser() {
+    localStorage.removeItem('user');
+    setUser(null);
+    setScreen('user');
+  }
 
   if (screen === 'gate') return <Gate onOk={() => setScreen('user')} />;
-  if (screen === 'user') return <UserSelect onPick={(u) => { setUser(u); setScreen('import'); }} />;
+  if (screen === 'user') return <UserSelect onPick={pick} />;
   if (screen === 'import' && user) return <Import user={user} onDone={() => setScreen('swipe')} />;
-  if (screen === 'swipe' && user) return <Swipe user={user} />;
+  if (screen === 'swipe' && user) return <Swipe user={user} onSwitch={switchUser} />;
   return null;
 }
