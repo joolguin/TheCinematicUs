@@ -4,7 +4,7 @@
 create table users (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  avatar_emoji text not null
+  avatar_url text
 );
 
 create table movies (
@@ -60,8 +60,8 @@ create table matches (
   unique (session_id, movie_id)
 );
 
--- Seed: las dos usuarias fijas
-insert into users (name, avatar_emoji) values ('Jo', '🐭'), ('Vale', '🦆');
+-- Seed: las dos usuarias fijas (avatar_url se llena cuando haya foto)
+insert into users (name) values ('Jo'), ('Vale');
 
 -- RLS: la anon key (frontend) solo puede LEER movies y matches.
 -- swipes y watchlist_items quedan inaccesibles para anon => privacidad de likes.
@@ -101,3 +101,19 @@ alter table sessions add column if not exists started_by text;
 
 -- 4) Publicar sessions en Realtime para detectar nuevas sesiones.
 alter publication supabase_realtime add table sessions;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración avatar (2026-06-23) — idempotente.
+-- avatar_emoji → avatar_url (nullable), para reemplazar emojis por fotos.
+-- ─────────────────────────────────────────────────────────────
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'users' and column_name = 'avatar_emoji'
+  ) then
+    alter table users rename column avatar_emoji to avatar_url;
+  end if;
+end $$;
+alter table users alter column avatar_url drop not null;
+update users set avatar_url = null;
