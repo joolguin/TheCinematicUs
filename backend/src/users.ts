@@ -12,3 +12,19 @@ export async function getUserByName(name: string): Promise<{ id: string }> {
   if (!data) throw new Error(`Usuaria desconocida: ${name}`);
   return { id: data.id };
 }
+
+export interface UserWithLetterboxd {
+  id: string;
+  name: string;
+  letterboxd_url: string | null;
+}
+
+export async function getUsersWithLetterboxd(): Promise<UserWithLetterboxd[]> {
+  const { data, error } = await supabase
+    .from('users').select('id, name, letterboxd_url');
+  if (error) {
+    console.error('[getUsersWithLetterboxd] error de Supabase:', error);
+    throw new Error(`Error listando usuarias: ${error.message}`);
+  }
+  return data ?? [];
+}
