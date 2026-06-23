@@ -1,12 +1,15 @@
 // frontend/src/screens/Swipe.tsx
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
 import type { UserName } from '../types';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
-import { MatchesList } from '../components/MatchesList';
+// Se carga solo al abrir el modal de matches (no se necesita en el primer paint).
+const MatchesList = lazy(() =>
+  import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
+);
 
 export function Swipe({ user }: { user: UserName }) {
   const [deck, setDeck] = useState<Movie[]>([]);
@@ -153,7 +156,11 @@ export function Swipe({ user }: { user: UserName }) {
       )}
 
       <MatchOverlay sessionId={sessionId} onCount={bumpCount} onChoose={setChosen} />
-      {showMatches && <MatchesList onClose={() => setShowMatches(false)} />}
+      {showMatches && (
+        <Suspense fallback={null}>
+          <MatchesList onClose={() => setShowMatches(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }
