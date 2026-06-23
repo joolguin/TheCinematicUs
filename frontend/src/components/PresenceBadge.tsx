@@ -16,6 +16,8 @@ type TrackPayload = { user: UserName; status: PresenceStatus };
 export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: PresenceStatus }) {
   const [otherStatus, setOtherStatus] = useState<PresenceStatus | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const myStatusRef = useRef<PresenceStatus>(myStatus);
+  useEffect(() => { myStatusRef.current = myStatus; }, [myStatus]);
 
   // Crear el canal una sola vez por usuaria.
   useEffect(() => {
@@ -34,7 +36,7 @@ export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: Presen
         setOtherStatus(found);
       })
       .subscribe((s) => {
-        if (s === 'SUBSCRIBED') channel.track({ user: me, status: myStatus });
+        if (s === 'SUBSCRIBED') channel.track({ user: me, status: myStatusRef.current });
       });
 
     return () => { supabase.removeChannel(channel); channelRef.current = null; };
