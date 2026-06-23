@@ -28,6 +28,13 @@ export function Swipe({ user }: { user: UserName }) {
     window.location.reload();
   }
 
+  // Desde el header pedimos confirmación: reinicia la noche para las dos.
+  async function confirmarNuevaSesion() {
+    if (window.confirm('¿Empezar una sesión nueva? Se reinicia el mazo y los matches de esta noche para las dos.')) {
+      await nuevaSesion();
+    }
+  }
+
   const top = deck[0];
 
   // Película elegida: pantalla final, en vez de caer en "terminaste tu mazo".
@@ -61,7 +68,10 @@ export function Swipe({ user }: { user: UserName }) {
     <div className="min-h-screen flex flex-col p-4 max-w-md mx-auto">
       <header className="flex justify-between items-center py-2">
         <span className="text-neutral-500">{user}</span>
-        <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
+        <div className="flex items-center gap-3">
+          <button onClick={confirmarNuevaSesion} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm">🔄 Nueva sesión</button>
+          <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
+        </div>
       </header>
 
       <div className="flex-1 relative">
