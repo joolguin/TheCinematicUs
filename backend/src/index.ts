@@ -41,6 +41,7 @@ app.post('/import', async (req, res) => {
     }
     res.json({ imported, minimal });
   } catch (e: any) {
+    console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -63,6 +64,7 @@ app.get('/deck', async (req, res) => {
     const { data: movies } = await supabase.from('movies').select('*').in('id', pending);
     res.json({ deck: movies ?? [] });
   } catch (e: any) {
+    console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -76,6 +78,7 @@ app.post('/swipe', async (req, res) => {
     const result = await recordSwipeAndDetectMatch(sessionId, userId, movieId, liked);
     res.json(result);
   } catch (e: any) {
+    console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -89,6 +92,7 @@ app.get('/matches', async (_req, res) => {
       .order('created_at', { ascending: false });
     res.json({ matches: (data ?? []).map((m: any) => m.movies) });
   } catch (e: any) {
+    console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -99,6 +103,7 @@ app.post('/session', async (_req, res) => {
     const s = await createSession();
     res.json(s);
   } catch (e: any) {
+    console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
