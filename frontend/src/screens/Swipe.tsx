@@ -3,7 +3,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
-import type { UserName } from '../types';
+import type { UserName, PresenceStatus } from '../types';
+import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
 // Se carga solo al abrir el modal de matches (no se necesita en el primer paint).
@@ -17,6 +18,7 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
   const [matchCount, setMatchCount] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
   const [chosen, setChosen] = useState<Movie | null>(null);
+  const [deckLoaded, setDeckLoaded] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -24,7 +26,9 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
 
-  useEffect(() => { api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck)); }, [user]);
+  useEffect(() => {
+    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
+  }, [user]);
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
 
   // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
@@ -40,7 +44,8 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
     setMatchCount(0);
     setSessionId(id);
     x.set(0);
-    api.get(`/deck?user=${user}`).then((r) => setDeck(r.deck));
+    setDeckLoaded(false);
+    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
   }
 
   // En vivo: si la otra inicia una noche nueva, avisar y reacomodar.
@@ -76,6 +81,7 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
   }
 
   const top = deck[0];
+  const myStatus: PresenceStatus = !deckLoaded ? 'en-linea' : deck.length > 0 ? 'swipeando' : 'termino';
 
   // Película elegida: pantalla final, en vez de caer en "terminaste tu mazo".
   if (chosen) {
@@ -120,6 +126,7 @@ export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void
           <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
         </div>
       </header>
+      <PresenceBadge me={user} myStatus={myStatus} />
 
       <div className="flex-1 relative">
         {top ? (
