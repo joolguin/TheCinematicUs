@@ -1,8 +1,9 @@
 // backend/src/watchlists.ts
+import { config } from './config.js';
 import { supabase } from './db.js';
 import { scrapeWatchlist } from './letterboxd.js';
 import { resolveMovie } from './movies.js';
-import { getUsersWithLetterboxd } from './users.js';
+import { getUsers } from './users.js';
 
 export interface RefreshResult {
   count: number;
@@ -51,10 +52,11 @@ export async function refreshWatchlistForUser(
 
 // Procesa todas las usuarias de forma independiente: una puede fallar sin frenar a la otra.
 export async function refreshAllWatchlists(): Promise<Record<string, RefreshResult>> {
-  const users = await getUsersWithLetterboxd();
+  const users = await getUsers();
   const out: Record<string, RefreshResult> = {};
   for (const u of users) {
-    out[u.name] = await refreshWatchlistForUser(u.id, u.letterboxd_url);
+    const url = config.letterboxdUrls[u.name] ?? null;
+    out[u.name] = await refreshWatchlistForUser(u.id, url);
   }
   return out;
 }

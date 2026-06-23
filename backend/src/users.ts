@@ -13,17 +13,15 @@ export async function getUserByName(name: string): Promise<{ id: string }> {
   return { id: data.id };
 }
 
-export interface UserWithLetterboxd {
+export interface User {
   id: string;
   name: string;
-  letterboxd_url: string | null;
 }
 
-export async function getUsersWithLetterboxd(): Promise<UserWithLetterboxd[]> {
-  const { data, error } = await supabase
-    .from('users').select('id, name, letterboxd_url');
+export async function getUsers(): Promise<User[]> {
+  const { data, error } = await supabase.from('users').select('id, name');
   if (error) {
-    console.error('[getUsersWithLetterboxd] error de Supabase:', error);
+    console.error('[getUsers] error de Supabase:', error);
     throw new Error(`Error listando usuarias: ${error.message}`);
   }
   return data ?? [];

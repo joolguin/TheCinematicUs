@@ -123,10 +123,8 @@ update users set avatar_url = null;
 -- Aplicar sobre la DB existente.
 -- ─────────────────────────────────────────────────────────────
 
--- 1) URL de watchlist pública por usuaria (se setea a mano).
-alter table users add column if not exists letterboxd_url text;
-update users set letterboxd_url = 'https://letterboxd.com/<jo>/watchlist/' where name = 'Jo';
-update users set letterboxd_url = 'https://letterboxd.com/<vale>/watchlist/' where name = 'Vale';
+-- 1) Las URLs de watchlist de Letterboxd se configuran por env
+--    (LETTERBOXD_URL_JO / LETTERBOXD_URL_VALE), no en la DB.
 
 -- 2) Desacoplar watchlist_items de sesiones → pozo persistente por usuaria.
 alter table watchlist_items drop constraint if exists watchlist_items_session_id_fkey;
