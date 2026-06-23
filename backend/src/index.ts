@@ -88,9 +88,11 @@ app.get('/matches', async (_req, res) => {
   try {
     const { id: sessionId } = await getActiveSession();
     const { data } = await supabase
-      .from('matches').select('movie_id, movies(*)').eq('session_id', sessionId)
+      .from('matches').select('id, movies(*)').eq('session_id', sessionId)
       .order('created_at', { ascending: false });
-    res.json({ matches: (data ?? []).map((m: any) => m.movies) });
+    // matchId identifica cada match (para que el frontend sepa cuáles ya mostró);
+    // el resto son los campos de la película.
+    res.json({ matches: (data ?? []).map((m: any) => ({ matchId: m.id, ...m.movies })) });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
