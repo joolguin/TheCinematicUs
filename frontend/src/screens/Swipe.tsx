@@ -11,7 +11,7 @@ const MatchesList = lazy(() =>
   import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
 );
 
-export function Swipe({ user }: { user: UserName }) {
+export function Swipe({ user, onSwitch }: { user: UserName; onSwitch: () => void }) {
   const [deck, setDeck] = useState<Movie[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [matchCount, setMatchCount] = useState(0);
@@ -111,7 +111,10 @@ export function Swipe({ user }: { user: UserName }) {
         </div>
       )}
       <header className="flex justify-between items-center py-2">
-        <span className="text-neutral-500">{user}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-neutral-500">{user}</span>
+          <button onClick={onSwitch} className="text-xs text-neutral-500 underline">cambiar</button>
+        </div>
         <div className="flex items-center gap-3">
           <button onClick={confirmarNuevaSesion} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm">🔄 Nueva sesión</button>
           <button onClick={() => setShowMatches(true)} className="text-lg">❤️ {matchCount}</button>
