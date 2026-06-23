@@ -4,11 +4,10 @@ import cors from 'cors';
 import { config } from './config.js';
 import { requirePassphrase } from './middleware/auth.js';
 import { supabase } from './db.js';
-import { parseTitleLine } from './tmdb.js';
-import { resolveMovie } from './movies.js';
 import { getActiveSession, createSession } from './sessions.js';
 import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
 import { getUserByName } from './users.js';
+import { refreshAllWatchlists } from './watchlists.js';
 
 const app = express();
 app.use(cors());
@@ -18,42 +17,26 @@ app.use(requirePassphrase);
 // Verifica la passphrase sin efectos (para el gate del frontend).
 app.get('/auth/check', (_req, res) => res.json({ ok: true }));
 
-// Importa títulos pegados a mano por una usuaria.
-app.post('/import', async (req, res) => {
+// Refresca el pozo scrapeando ambas watchlists de Letterboxd. Replace-on-success por usuaria.
+// Síncrono: el primer scrape (cache fría) puede tardar; el frontend muestra spinner.
+app.post('/watchlists/refresh', async (_req, res) => {
   try {
-    const { user, titles } = req.body as { user: string; titles: string };
-    const { id: userId } = await getUserByName(user);
-    const { id: sessionId } = await getActiveSession();
-    const lines = titles.split('\n').map(parseTitleLine).filter((l) => l.title);
-
-    let imported = 0;
-    let minimal = 0;
-    for (const { title, year } of lines) {
-      const { id: movieId } = await resolveMovie(title, year);
-      const { data: movie } = await supabase
-        .from('movies').select('enriched').eq('id', movieId).single();
-      if (!movie?.enriched) minimal++;
-      await supabase.from('watchlist_items').upsert(
-        { session_id: sessionId, user_id: userId, movie_id: movieId },
-        { onConflict: 'session_id,user_id,movie_id' },
-      );
-      imported++;
-    }
-    res.json({ imported, minimal });
+    res.json(await refreshAllWatchlists());
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
   }
 });
 
-// Mazo pendiente: unión de watchlists de la sesión menos lo que esta usuaria ya swipeó.
+// Mazo pendiente: unión de las watchlists persistentes de TODAS las usuarias
+// menos lo que esta usuaria ya swipeó en la sesión activa.
 app.get('/deck', async (req, res) => {
   try {
     const { id: userId } = await getUserByName(String(req.query.user));
     const { id: sessionId } = await getActiveSession();
 
     const { data: items } = await supabase
-      .from('watchlist_items').select('movie_id').eq('session_id', sessionId);
+      .from('watchlist_items').select('movie_id');
     const movieIds = [...new Set((items ?? []).map((i) => i.movie_id))];
 
     const { data: swiped } = await supabase
