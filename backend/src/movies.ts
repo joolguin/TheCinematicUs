@@ -27,9 +27,21 @@ export async function resolveMovie(title: string, year: number | null): Promise<
   }).select('id').single();
 
   if (error) {
-    const { data: race } = await supabase
-      .from('movies').select('id').eq('search_key', key).single();
-    return { id: race!.id };
+    // El insert pudo fallar por conflicto de search_key (misma búsqueda en paralelo)
+    // o de tmdb_id (dos títulos distintos que resuelven a la MISMA peli de TMDB).
+    let row: { id: string } | null = null;
+    if (m.tmdbId != null) {
+      const r = await supabase.from('movies').select('id').eq('tmdb_id', m.tmdbId).maybeSingle();
+      row = r.data;
+    }
+    if (!row) {
+      const r = await supabase.from('movies').select('id').eq('search_key', key).maybeSingle();
+      row = r.data;
+    }
+    // Conflicto inesperado (no era ni tmdb_id ni search_key): propagar el error real,
+    // no un confuso "Cannot read properties of null".
+    if (!row) throw error;
+    return { id: row.id };
   }
   return { id: inserted!.id };
 }
