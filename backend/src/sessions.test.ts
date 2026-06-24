@@ -38,15 +38,15 @@ beforeEach(() => {
 
 describe('getActiveSession', () => {
   it('devuelve la sesión activa si existe', async () => {
-    activeRow = { id: 's1' };
-    expect(await getActiveSession()).toEqual({ id: 's1' });
+    activeRow = { id: 's1', filters: null };
+    expect(await getActiveSession()).toEqual({ id: 's1', filters: null });
     expect(insertMock).not.toHaveBeenCalled();
   });
 
   it('crea una sesión si no hay activa', async () => {
     activeRow = null;
     insertResult = { data: { id: 's2' }, error: null };
-    expect(await getActiveSession()).toEqual({ id: 's2' });
+    expect(await getActiveSession()).toEqual({ id: 's2', filters: null });
     expect(insertMock).toHaveBeenCalled();
   });
 });

@@ -34,6 +34,8 @@ create table sessions (
   mode text not null default 'pool',
   active boolean not null default true,
   started_by text,
+  filters jsonb,
+  filters_updated_by text,
   created_at timestamptz not null default now()
 );
 
@@ -176,3 +178,12 @@ alter table users add column if not exists letterboxd_url text;
 -- ─────────────────────────────────────────────────────────────
 alter table movies add column if not exists fetched_at timestamptz;
 alter table movies add column if not exists last_enrich_attempt_at timestamptz;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M2 filtros (2026-06-24): filtro compartido por sesión.
+-- filters (jsonb, null = sin filtro) + filters_updated_by (quién lo
+-- tocó, para el aviso en vivo). sessions ya está en la publicación
+-- supabase_realtime, así que los UPDATE se propagan sin DDL extra.
+-- ─────────────────────────────────────────────────────────────
+alter table sessions add column if not exists filters jsonb;
+alter table sessions add column if not exists filters_updated_by text;

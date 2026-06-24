@@ -18,6 +18,17 @@ export interface Movie {
   enriched: boolean;
 }
 
+export interface SessionFilters {
+  maxRuntime: number | null;
+  excludeGenres: string[];
+}
+
+export interface DeckResponse {
+  deck: Movie[];
+  genres: string[];
+  filters: SessionFilters | null;
+}
+
 function headers() {
   return {
     'Content-Type': 'application/json',

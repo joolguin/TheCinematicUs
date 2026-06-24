@@ -8,6 +8,7 @@ import { getActiveSession, createSession } from './sessions.js';
 import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
 import { getUserByName } from './users.js';
 import { refreshAllWatchlists } from './watchlists.js';
+import { applyFilters, collectGenres, type SessionFilters } from './filters.js';
 
 const app = express();
 app.use(cors());
@@ -33,7 +34,7 @@ app.post('/watchlists/refresh', async (_req, res) => {
 app.get('/deck', async (req, res) => {
   try {
     const { id: userId } = await getUserByName(String(req.query.user));
-    const { id: sessionId } = await getActiveSession();
+    const { id: sessionId, filters } = await getActiveSession();
 
     const { data: items } = await supabase
       .from('watchlist_items').select('movie_id');
@@ -45,7 +46,28 @@ app.get('/deck', async (req, res) => {
 
     const pending = movieIds.filter((id) => !swipedIds.has(id));
     const { data: movies } = await supabase.from('movies').select('*').in('id', pending);
-    res.json({ deck: movies ?? [] });
+    const pool = movies ?? [];
+    // genres se calcula del pool pendiente SIN filtrar, para poblar los chips
+    // aunque el filtro activo excluya algunos.
+    res.json({ deck: applyFilters(pool, filters), genres: collectGenres(pool), filters });
+  } catch (e: any) {
+    console.error('[error endpoint]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Escribe el filtro de la noche en la sesión activa. Compartido: cualquiera lo
+// edita; el Realtime de sessions propaga el cambio a la otra usuaria.
+app.post('/session/filters', async (req, res) => {
+  try {
+    const { user, filters } = req.body as { user: string; filters: SessionFilters };
+    const { id: sessionId } = await getActiveSession();
+    const { error } = await supabase
+      .from('sessions')
+      .update({ filters, filters_updated_by: user })
+      .eq('id', sessionId);
+    if (error) throw error;
+    res.json({ ok: true });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });

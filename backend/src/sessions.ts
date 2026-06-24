@@ -1,12 +1,14 @@
 // backend/src/sessions.ts
 import { supabase } from './db.js';
+import type { SessionFilters } from './filters.js';
 
-export async function getActiveSession(): Promise<{ id: string }> {
+export async function getActiveSession(): Promise<{ id: string; filters: SessionFilters | null }> {
   const { data } = await supabase
-    .from('sessions').select('id').eq('active', true)
+    .from('sessions').select('id, filters').eq('active', true)
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (data) return { id: data.id };
-  return createSession();
+  if (data) return { id: data.id, filters: (data.filters as SessionFilters | null) ?? null };
+  const created = await createSession();
+  return { id: created.id, filters: null };
 }
 
 // Una sesión nueva = noche nueva. Desactiva las viejas para que el mazo arranque de cero.
