@@ -4,7 +4,8 @@
 create table users (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
-  avatar_url text
+  avatar_url text,
+  letterboxd_url text
 );
 
 create table movies (
@@ -22,8 +23,10 @@ create table movies (
   tmdb_rating numeric,
   country text,
   enriched boolean not null default false,
-  -- clave de cache para resolver título+año sin re-pedir a TMDB
-  search_key text unique
+  fetched_at timestamptz,
+  last_enrich_attempt_at timestamptz,
+  -- clave de cache para resolver título+año sin re-pedir a TMDB (NO unique: tmdb_id es la verdad)
+  search_key text
 );
 
 create table sessions (
@@ -35,7 +38,7 @@ create table sessions (
 );
 
 -- Pozo persistente por usuaria (NO scopeado por sesión).
--- Las URLs de watchlist de Letterboxd se configuran por env (LETTERBOXD_URL_JO/_VALE).
+-- Las URLs de watchlist de Letterboxd se almacenan en users.letterboxd_url.
 create table watchlist_items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id),
@@ -77,8 +80,10 @@ create policy "anon lee users" on users for select to anon using (true);
 create policy "anon lee movies" on movies for select to anon using (true);
 create policy "anon lee sessions" on sessions for select to anon using (true);
 create policy "anon lee matches" on matches for select to anon using (true);
--- swipes y watchlist_items: SIN policy para anon => nadie con anon key los lee.
--- El backend usa la service role key, que ignora RLS.
+-- swipes y watchlist_items: DENY explícito para anon (fail-closed visible).
+-- El backend usa service role, que ignora RLS.
+create policy "anon no lee swipes" on swipes for select to anon using (false);
+create policy "anon no lee watchlist_items" on watchlist_items for select to anon using (false);
 
 -- Realtime: publicar matches para suscripción en vivo
 alter publication supabase_realtime add table matches;
@@ -136,3 +141,38 @@ alter table watchlist_items drop column if exists session_id;
 -- Nueva unicidad: una fila por (usuaria, película).
 create unique index if not exists watchlist_items_user_movie
   on watchlist_items (user_id, movie_id);
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M1 (2026-06-24): search_key deja de ser unique.
+-- Dos pelis distintas con mismo título+año pueden coexistir; la
+-- identidad real es tmdb_id (que sigue unique). La lectura de cache
+-- usa limit(1), tolerante a duplicados.
+-- ─────────────────────────────────────────────────────────────
+alter table movies drop constraint if exists movies_search_key_key;
+create index if not exists movies_search_key_idx on movies (search_key);
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M1 privacidad (2026-06-24): DENY explícito en vez de
+-- ausencia de policy. Fail-closed visible para auditar.
+-- ─────────────────────────────────────────────────────────────
+drop policy if exists "anon no lee swipes" on swipes;
+drop policy if exists "anon no lee watchlist_items" on watchlist_items;
+create policy "anon no lee swipes" on swipes for select to anon using (false);
+create policy "anon no lee watchlist_items" on watchlist_items for select to anon using (false);
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M1 letterboxd_url (2026-06-24): URLs de watchlist como
+-- columna de users (antes en env LETTERBOXD_URL_*). Cambiar URL ya
+-- no requiere redeploy. Poblar manualmente:
+--   update users set letterboxd_url = '...' where name = 'Jo';
+--   update users set letterboxd_url = '...' where name = 'Vale';
+-- ─────────────────────────────────────────────────────────────
+alter table users add column if not exists letterboxd_url text;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M1 enrich (2026-06-24): fetched_at (datos válidos cacheados)
+-- y last_enrich_attempt_at (último intento) para reintentar las pelis
+-- no enriquecidas con ventana fija, en vez de enriched=false permanente.
+-- ─────────────────────────────────────────────────────────────
+alter table movies add column if not exists fetched_at timestamptz;
+alter table movies add column if not exists last_enrich_attempt_at timestamptz;

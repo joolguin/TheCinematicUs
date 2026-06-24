@@ -6,6 +6,7 @@ const deleteMock = vi.fn();
 const insertMock = vi.fn();
 let deleteError: any = null;
 let insertError: any = null;
+let currentItems: { movie_id: string }[] = [];
 
 vi.mock('./letterboxd.js', () => ({
   scrapeWatchlist: vi.fn(() =>
@@ -21,6 +22,7 @@ vi.mock('./movies.js', () => ({
 vi.mock('./db.js', () => ({
   supabase: {
     from: () => ({
+      select: () => ({ eq: () => Promise.resolve({ data: currentItems }) }),
       delete: () => { deleteMock(); return { eq: () => Promise.resolve({ error: deleteError }) }; },
       insert: (...a: any[]) => { insertMock(...a); return Promise.resolve({ error: insertError }); },
     }),
@@ -35,6 +37,7 @@ beforeEach(() => {
   insertMock.mockClear();
   deleteError = null;
   insertError = null;
+  currentItems = [];
 });
 
 describe('refreshWatchlistForUser', () => {
@@ -106,5 +109,28 @@ describe('refreshWatchlistForUser', () => {
     expect(r).toEqual({ count: 0, ok: false, error: 'constraint violation' });
     expect(deleteMock).toHaveBeenCalledTimes(1);
     expect(insertMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('mantiene el set anterior si el scrape eliminaría >40% del pozo', async () => {
+    // pozo actual de 10; el scrape trae solo 2 conocidas → se irían 8 (80%)
+    currentItems = Array.from({ length: 10 }, (_, i) => ({ movie_id: `id-old${i}` }));
+    scrapeResult = [
+      { title: 'old0', year: 2000 }, // resolveMovie mock → id-old0
+      { title: 'old1', year: 2000 }, // → id-old1
+    ];
+    const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
+    expect(r.ok).toBe(false);
+    expect(r.kept).toBe(true);
+    expect(deleteMock).not.toHaveBeenCalled();
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('reemplaza si el diff está dentro del umbral', async () => {
+    currentItems = [{ movie_id: 'id-Drive' }, { movie_id: 'id-Her' }, { movie_id: 'id-old' }];
+    scrapeResult = [{ title: 'Drive', year: 2011 }, { title: 'Her', year: 2013 }];
+    // se va 1 de 3 = 33% < 40% → procede
+    const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
+    expect(r.ok).toBe(true);
+    expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 });

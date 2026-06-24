@@ -16,10 +16,11 @@ export async function getUserByName(name: string): Promise<{ id: string }> {
 export interface User {
   id: string;
   name: string;
+  letterboxd_url: string | null;
 }
 
 export async function getUsers(): Promise<User[]> {
-  const { data, error } = await supabase.from('users').select('id, name');
+  const { data, error } = await supabase.from('users').select('id, name, letterboxd_url');
   if (error) {
     console.error('[getUsers] error de Supabase:', error);
     throw new Error(`Error listando usuarias: ${error.message}`);
