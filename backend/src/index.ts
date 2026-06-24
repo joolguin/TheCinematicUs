@@ -7,7 +7,7 @@ import { supabase } from './db.js';
 import { getActiveSession, createSession } from './sessions.js';
 import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
 import { getUserByName } from './users.js';
-import { refreshAllWatchlists } from './watchlists.js';
+import { claimRefresh, runRefreshJob } from './refreshJob.js';
 import { applyFilters, collectGenres, type SessionFilters } from './filters.js';
 
 const app = express();
@@ -18,11 +18,20 @@ app.use(requirePassphrase);
 // Verifica la passphrase sin efectos (para el gate del frontend).
 app.get('/auth/check', (_req, res) => res.json({ ok: true }));
 
-// Refresca el pozo scrapeando ambas watchlists de Letterboxd. Replace-on-success por usuaria.
-// Síncrono: el primer scrape (cache fría) puede tardar; el frontend muestra spinner.
+// Refresca el pozo en background. Responde 202 al toque; el estado real va a
+// refresh_status (que el frontend lee por Realtime). El cron diario de Supabase
+// pega a este mismo endpoint.
 app.post('/watchlists/refresh', async (_req, res) => {
   try {
-    res.json(await refreshAllWatchlists());
+    const claimed = await claimRefresh();
+    if (!claimed) {
+      res.status(202).json({ status: 'running', already: true });
+      return;
+    }
+    res.status(202).json({ status: 'running' });
+    // Background, sin await. runRefreshJob escribe su propio estado; el .catch
+    // es red de seguridad por si falla el propio write de error.
+    runRefreshJob().catch((e) => console.error('[refresh job]', e));
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
