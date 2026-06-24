@@ -59,9 +59,19 @@ describe('scrapeWatchlist', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('corta si una página responde con error HTTP', async () => {
-    const fetchMock = vi.fn(() => Promise.resolve({ ok: false, text: () => Promise.resolve('') }));
+  it('lanza con el status si la primera página da error HTTP', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') }),
+    );
     vi.stubGlobal('fetch', fetchMock);
-    expect(await scrapeWatchlist('https://letterboxd.com/jo/watchlist/')).toEqual([]);
+    await expect(scrapeWatchlist('https://letterboxd.com/jo/watchlist/')).rejects.toThrow('403');
+  });
+
+  it('lanza si la primera página viene 200 pero sin films (página-desafío/markup)', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<html>nada</html>') }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(scrapeWatchlist('https://letterboxd.com/jo/watchlist/')).rejects.toThrow(/200/);
   });
 });

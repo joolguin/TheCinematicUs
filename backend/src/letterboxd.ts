@@ -45,20 +45,32 @@ const USER_AGENT =
   '(KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
 // Recorre las páginas de la watchlist hasta una vacía. Devuelve films deduplicados.
+// Si no encuentra ninguno, lanza con diagnóstico de la página 1 (status HTTP + bytes)
+// para distinguir bloqueo (403/503 desde IPs de datacenter) de markup cambiado o
+// watchlist realmente vacía.
 export async function scrapeWatchlist(url: string): Promise<ScrapedFilm[]> {
   const base = url.endsWith('/') ? url : url + '/';
   const seen = new Map<string, ScrapedFilm>();
+  let firstStatus: number | undefined;
+  let firstBytes = 0;
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const pageUrl = page === 1 ? base : `${base}page/${page}/`;
     const res = await fetch(pageUrl, { headers: { 'User-Agent': USER_AGENT } });
+    if (page === 1) firstStatus = res.status;
     if (!res.ok) break;
-    const films = parseWatchlistPage(await res.text());
+    const html = await res.text();
+    if (page === 1) firstBytes = html.length;
+    const films = parseWatchlistPage(html);
     if (films.length === 0) break;
     for (const f of films) {
       const key = `${f.title.toLowerCase()}|${f.year ?? ''}`;
       if (!seen.has(key)) seen.set(key, f);
     }
+  }
+
+  if (seen.size === 0) {
+    throw new Error(`sin films (page 1: HTTP ${firstStatus ?? '?'}, ${firstBytes} bytes)`);
   }
   return [...seen.values()];
 }
