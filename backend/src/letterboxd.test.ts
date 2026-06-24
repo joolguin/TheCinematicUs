@@ -2,23 +2,23 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { parseWatchlistPage, scrapeWatchlist } from './letterboxd.js';
 
+// Markup real de Letterboxd (2026): cada poster es un react-component LazyPoster
+// con el título+año en `data-item-name`. Ya no hay `data-film-slug` ni <img alt>.
 const PAGE = `
 <ul class="poster-list">
   <li class="poster-container">
-    <div class="film-poster" data-film-slug="parasite-2019">
-      <img class="image" alt="Parasite" />
-    </div>
+    <div class="react-component" data-component-class="LazyPoster"
+         data-item-name="Parasite (2019)" data-item-slug="parasite"></div>
   </li>
   <li class="poster-container">
-    <div class="film-poster" data-film-slug="amelie">
-      <img class="image" alt="Am&eacute;lie" />
-    </div>
+    <div class="react-component" data-component-class="LazyPoster"
+         data-item-name="Am&eacute;lie" data-item-slug="amelie"></div>
   </li>
 </ul>
 `;
 
 describe('parseWatchlistPage', () => {
-  it('extrae título y año del slug', () => {
+  it('extrae título y año de data-item-name', () => {
     expect(parseWatchlistPage(PAGE)).toEqual([
       { title: 'Parasite', year: 2019 },
       { title: 'Amélie', year: null },
@@ -32,17 +32,17 @@ describe('parseWatchlistPage', () => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-function htmlFor(slugs: string[]): string {
-  return slugs
-    .map((s) => `<div class="film-poster" data-film-slug="${s}"><img alt="${s}" /></div>`)
+function htmlFor(names: string[]): string {
+  return names
+    .map((n) => `<div class="react-component" data-item-name="${n}" data-item-slug="x"></div>`)
     .join('');
 }
 
 describe('scrapeWatchlist', () => {
   it('recorre páginas hasta una vacía y deduplica', async () => {
     const pages: Record<string, string> = {
-      'https://letterboxd.com/jo/watchlist/': htmlFor(['drive-2011', 'parasite-2019']),
-      'https://letterboxd.com/jo/watchlist/page/2/': htmlFor(['parasite-2019', 'her-2013']),
+      'https://letterboxd.com/jo/watchlist/': htmlFor(['Drive (2011)', 'Parasite (2019)']),
+      'https://letterboxd.com/jo/watchlist/page/2/': htmlFor(['Parasite (2019)', 'Her (2013)']),
       'https://letterboxd.com/jo/watchlist/page/3/': '<ul></ul>',
     };
     const fetchMock = vi.fn((url: string) =>
@@ -52,9 +52,9 @@ describe('scrapeWatchlist', () => {
 
     const films = await scrapeWatchlist('https://letterboxd.com/jo/watchlist/');
     expect(films).toEqual([
-      { title: 'drive-2011', year: 2011 },
-      { title: 'parasite-2019', year: 2019 },
-      { title: 'her-2013', year: 2013 },
+      { title: 'Drive', year: 2011 },
+      { title: 'Parasite', year: 2019 },
+      { title: 'Her', year: 2013 },
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

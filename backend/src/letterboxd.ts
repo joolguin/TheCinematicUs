@@ -6,9 +6,10 @@ export interface ScrapedFilm {
   year: number | null;
 }
 
-// Cada poster expone `data-film-slug="..."` y, más adelante en el mismo bloque,
-// un <img ... alt="Título">. El non-greedy puentea del slug al próximo alt.
-const FILM_RE = /data-film-slug="([^"]*)"[\s\S]*?<img\b[^>]*\balt="([^"]*)"/g;
+// Cada poster es un react-component `LazyPoster` con el título y año juntos en
+// `data-item-name` (ej. `Parasite (2019)`). Los posters se cargan lazy, así que en
+// el HTML server-rendered NO hay <img alt>; este atributo es la fuente estable.
+const FILM_RE = /data-item-name="([^"]*)"/g;
 
 // Desescapa las entidades HTML más comunes en títulos.
 function unescapeHtml(s: string): string {
@@ -28,12 +29,12 @@ function unescapeHtml(s: string): string {
 export function parseWatchlistPage(html: string): ScrapedFilm[] {
   const films: ScrapedFilm[] = [];
   for (const m of html.matchAll(FILM_RE)) {
-    const slug = m[1];
-    const title = unescapeHtml(m[2]).trim();
-    if (!title) continue;
-    const yearMatch = slug.match(/-(\d{4})$/);
-    const year = yearMatch ? Number(yearMatch[1]) : null;
-    films.push({ title, year });
+    const name = unescapeHtml(m[1]).trim(); // "Parasite (2019)"
+    if (!name) continue;
+    // Separa "Título (Año)"; si no hay año, queda null.
+    const ym = name.match(/^(.*?)\s*\((\d{4})\)\s*$/);
+    if (ym) films.push({ title: ym[1].trim(), year: Number(ym[2]) });
+    else films.push({ title: name, year: null });
   }
   return films;
 }
