@@ -66,6 +66,19 @@ create table matches (
   unique (session_id, movie_id)
 );
 
+-- Estado del último refresh de watchlists (singleton). El frontend (anon) lo
+-- lee por Realtime para saber cuándo terminó. Solo conteos, no likes.
+create table refresh_status (
+  id int primary key default 1,
+  status text not null default 'idle',   -- 'idle' | 'running' | 'done' | 'error'
+  started_at timestamptz,
+  finished_at timestamptz,
+  result jsonb,
+  updated_at timestamptz not null default now(),
+  constraint refresh_status_singleton check (id = 1)
+);
+insert into refresh_status (id, status) values (1, 'idle') on conflict (id) do nothing;
+
 -- Seed: las dos usuarias fijas (avatar_url se llena cuando haya foto)
 insert into users (name) values ('Jo'), ('Vale');
 
@@ -86,9 +99,12 @@ create policy "anon lee matches" on matches for select to anon using (true);
 -- El backend usa service role, que ignora RLS.
 create policy "anon no lee swipes" on swipes for select to anon using (false);
 create policy "anon no lee watchlist_items" on watchlist_items for select to anon using (false);
+alter table refresh_status enable row level security;
+create policy "anon lee refresh_status" on refresh_status for select to anon using (true);
 
 -- Realtime: publicar matches para suscripción en vivo
 alter publication supabase_realtime add table matches;
+alter publication supabase_realtime add table refresh_status;
 
 -- ─────────────────────────────────────────────────────────────
 -- Migración bloque crítico (2026-06-23) — idempotente.
@@ -187,3 +203,30 @@ alter table movies add column if not exists last_enrich_attempt_at timestamptz;
 -- ─────────────────────────────────────────────────────────────
 alter table sessions add column if not exists filters jsonb;
 alter table sessions add column if not exists filters_updated_by text;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M3 refresh async (2026-06-24): tabla refresh_status para
+-- el estado del refresh asíncrono, leída por el frontend vía Realtime.
+-- ─────────────────────────────────────────────────────────────
+create table if not exists refresh_status (
+  id int primary key default 1,
+  status text not null default 'idle',
+  started_at timestamptz,
+  finished_at timestamptz,
+  result jsonb,
+  updated_at timestamptz not null default now(),
+  constraint refresh_status_singleton check (id = 1)
+);
+insert into refresh_status (id, status) values (1, 'idle') on conflict (id) do nothing;
+alter table refresh_status enable row level security;
+drop policy if exists "anon lee refresh_status" on refresh_status;
+create policy "anon lee refresh_status" on refresh_status for select to anon using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'refresh_status'
+  ) then
+    alter publication supabase_realtime add table refresh_status;
+  end if;
+end $$;
