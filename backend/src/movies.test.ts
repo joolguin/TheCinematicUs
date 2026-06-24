@@ -19,6 +19,8 @@ vi.mock('./db.js', () => ({
           return {
             maybeSingle: () => Promise.resolve({ data }),
             single: () => Promise.resolve({ data }),
+            // search_key ahora se lee con .limit(1) → devuelve array
+            limit: () => Promise.resolve({ data: data ? [data] : [] }),
           };
         },
       }),

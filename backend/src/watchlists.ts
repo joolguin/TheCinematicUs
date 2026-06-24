@@ -1,14 +1,18 @@
 // backend/src/watchlists.ts
-import { config } from './config.js';
 import { supabase } from './db.js';
 import { scrapeWatchlist } from './letterboxd.js';
 import { resolveMovie } from './movies.js';
 import { getUsers } from './users.js';
 
+// Si el set nuevo eliminaría más de esta fracción del pozo anterior, sospechamos
+// scrape degradado y mantenemos el set viejo en vez de vaciarlo.
+const MAX_REMOVAL_RATIO = 0.4;
+
 export interface RefreshResult {
   count: number;
   ok: boolean;
   error?: string;
+  kept?: boolean; // true = se mantuvo el set anterior por diff sospechoso
 }
 
 // Replace-on-success: solo reemplaza el set si el scrape trajo ≥1 película.
@@ -38,6 +42,24 @@ export async function refreshWatchlistForUser(
   }
   const uniqueIds = [...new Set(ids)];
 
+  // Guardia anti-degradación: comparar contra el set actual.
+  const { data: current } = await supabase
+    .from('watchlist_items').select('movie_id').eq('user_id', userId);
+  const prevIds = new Set((current ?? []).map((r: { movie_id: string }) => r.movie_id));
+  if (prevIds.size > 0) {
+    const newIds = new Set(uniqueIds);
+    const removed = [...prevIds].filter((id) => !newIds.has(id)).length;
+    const ratio = removed / prevIds.size;
+    if (ratio > MAX_REMOVAL_RATIO) {
+      return {
+        count: prevIds.size,
+        ok: false,
+        kept: true,
+        error: `diff sospechoso: ${Math.round(ratio * 100)}% del pozo desaparecería; se mantiene el set anterior`,
+      };
+    }
+  }
+
   // Reemplazo atómico-suficiente: borrar el set de la usuaria e insertar el nuevo.
   const { error: delErr } = await supabase.from('watchlist_items').delete().eq('user_id', userId);
   if (delErr) return { count: 0, ok: false, error: delErr.message };
@@ -55,8 +77,7 @@ export async function refreshAllWatchlists(): Promise<Record<string, RefreshResu
   const users = await getUsers();
   const out: Record<string, RefreshResult> = {};
   for (const u of users) {
-    const url = config.letterboxdUrls[u.name] ?? null;
-    out[u.name] = await refreshWatchlistForUser(u.id, url);
+    out[u.name] = await refreshWatchlistForUser(u.id, u.letterboxd_url);
   }
   return out;
 }

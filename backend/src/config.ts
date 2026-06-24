@@ -13,10 +13,4 @@ export const config = {
   supabaseServiceKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   appPassphrase: required('APP_PASSPHRASE'),
   port: Number(process.env.PORT ?? 3001),
-  // URLs de watchlist de Letterboxd por usuaria. Opcionales: si falta la de una
-  // usuaria, su refresh falla suave ("sin URL de Letterboxd") sin frenar a la otra.
-  letterboxdUrls: {
-    Jo: process.env.LETTERBOXD_URL_JO ?? null,
-    Vale: process.env.LETTERBOXD_URL_VALE ?? null,
-  } as Record<string, string | null>,
 };
