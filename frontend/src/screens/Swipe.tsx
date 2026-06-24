@@ -1,12 +1,13 @@
 // frontend/src/screens/Swipe.tsx
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { api, type Movie } from '../api';
+import { api, type Movie, type SessionFilters, type DeckResponse } from '../api';
 import type { UserName, PresenceStatus } from '../types';
 import { useSessionListener } from '../hooks';
 import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
+import { FilterBar } from '../components/FilterBar';
 // Se carga solo al abrir el modal de matches (no se necesita en el primer paint).
 const MatchesList = lazy(() =>
   import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
@@ -21,13 +22,19 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
   const [deckLoaded, setDeckLoaded] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [filters, setFilters] = useState<SessionFilters | null>(null);
+  const [genres, setGenres] = useState<string[]>([]);
+  const postTimer = useRef<number | undefined>(undefined);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const opacity = useTransform(x, [-200, 0, 200], [0.5, 1, 0.5]);
 
-  useEffect(() => {
-    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
+  const loadDeck = useCallback(async () => {
+    const r: DeckResponse = await api.get(`/deck?user=${user}`);
+    setDeck(r.deck); setGenres(r.genres); setFilters(r.filters); setDeckLoaded(true);
   }, [user]);
+
+  useEffect(() => { loadDeck(); }, [loadDeck]);
   // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
   useEffect(() => {
     api.get('/matches').then((r) => { setMatchCount(r.matches.length); setSessionId(r.sessionId); });
@@ -42,15 +49,31 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     setSessionId(id);
     x.set(0);
     setDeckLoaded(false);
-    api.get(`/deck?user=${user}`).then((r) => { setDeck(r.deck); setDeckLoaded(true); });
+    loadDeck();
   }
+
+  function applyLocalFilter(next: SessionFilters) {
+    setFilters(next); // feedback inmediato del control
+    window.clearTimeout(postTimer.current);
+    postTimer.current = window.setTimeout(async () => {
+      await api.post('/session/filters', { user, filters: next });
+      await loadDeck();
+    }, 400);
+  }
+
+  const onFiltersChanged = useCallback((f: SessionFilters | null, by: string) => {
+    setFilters(f);
+    loadDeck();
+    setAviso(`${by} cambió el filtro`);
+    setTimeout(() => setAviso(null), 4000);
+  }, [loadDeck]);
 
   // En vivo: si la otra inicia una noche nueva, avisar y reacomodar.
   useSessionListener(user, sessionId, (newSessionId) => {
     setAviso(`Empezó una noche nueva`);
     softReset(newSessionId);
     setTimeout(() => setAviso(null), 4000);
-  });
+  }, onFiltersChanged);
 
   const bumpCount = useCallback(() => setMatchCount((c) => c + 1), []);
 
@@ -115,6 +138,7 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
         </div>
       </header>
       <PresenceBadge me={user} myStatus={myStatus} />
+      <FilterBar genres={genres} filters={filters} onChange={applyLocalFilter} />
 
       <div className="flex-1 relative">
         {top ? (
