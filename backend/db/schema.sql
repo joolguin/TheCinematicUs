@@ -66,6 +66,17 @@ create table matches (
   unique (session_id, movie_id)
 );
 
+-- Estado acumulado por usuaria que cruza sesiones (para ordenar el mazo por
+-- novedad). Privado: revela qué pasó/likeó cada usuaria.
+create table user_movie_state (
+  user_id uuid not null references users(id),
+  movie_id uuid not null references movies(id),
+  pass_count int not null default 0,
+  last_passed_at timestamptz,
+  last_liked_at timestamptz,
+  primary key (user_id, movie_id)
+);
+
 -- Estado del último refresh de watchlists (singleton). El frontend (anon) lo
 -- lee por Realtime para saber cuándo terminó. Solo conteos, no likes.
 create table refresh_status (
@@ -99,6 +110,8 @@ create policy "anon lee matches" on matches for select to anon using (true);
 -- El backend usa service role, que ignora RLS.
 create policy "anon no lee swipes" on swipes for select to anon using (false);
 create policy "anon no lee watchlist_items" on watchlist_items for select to anon using (false);
+alter table user_movie_state enable row level security;
+create policy "anon no lee user_movie_state" on user_movie_state for select to anon using (false);
 alter table refresh_status enable row level security;
 create policy "anon lee refresh_status" on refresh_status for select to anon using (true);
 
@@ -230,3 +243,19 @@ begin
     alter publication supabase_realtime add table refresh_status;
   end if;
 end $$;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M4 motor de novedad (2026-06-25): user_movie_state para
+-- ordenar el mazo por novedad cruzando sesiones. Privada (DENY anon).
+-- ─────────────────────────────────────────────────────────────
+create table if not exists user_movie_state (
+  user_id uuid not null references users(id),
+  movie_id uuid not null references movies(id),
+  pass_count int not null default 0,
+  last_passed_at timestamptz,
+  last_liked_at timestamptz,
+  primary key (user_id, movie_id)
+);
+alter table user_movie_state enable row level security;
+drop policy if exists "anon no lee user_movie_state" on user_movie_state;
+create policy "anon no lee user_movie_state" on user_movie_state for select to anon using (false);

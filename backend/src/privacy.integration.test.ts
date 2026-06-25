@@ -24,4 +24,9 @@ suite('privacidad: la anon key NO puede leer likes', () => {
     const { data } = await anon.from('watchlist_items').select('*').limit(1);
     expect(data ?? []).toHaveLength(0);
   });
+
+  it('no lee user_movie_state', async () => {
+    const { data } = await anon.from('user_movie_state').select('*').limit(1);
+    expect(data ?? []).toHaveLength(0);
+  });
 });
