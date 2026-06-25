@@ -60,14 +60,24 @@ export async function refreshWatchlistForUser(
     }
   }
 
-  // Reemplazo atómico-suficiente: borrar el set de la usuaria e insertar el nuevo.
-  const { error: delErr } = await supabase.from('watchlist_items').delete().eq('user_id', userId);
-  if (delErr) return { count: 0, ok: false, error: delErr.message };
+  // Diff-based: insertar las nuevas (con first_seen_at), no tocar las que siguen
+  // (preservan su first_seen_at), borrar las que ya no están.
+  const now = new Date().toISOString();
+  const newSet = new Set(uniqueIds);
+  const toInsert = uniqueIds.filter((id) => !prevIds.has(id));
+  const toDelete = [...prevIds].filter((id) => !newSet.has(id));
 
-  const { error: insErr } = await supabase
-    .from('watchlist_items')
-    .insert(uniqueIds.map((movie_id) => ({ user_id: userId, movie_id })));
-  if (insErr) return { count: 0, ok: false, error: insErr.message };
+  if (toDelete.length > 0) {
+    const { error: delErr } = await supabase
+      .from('watchlist_items').delete().eq('user_id', userId).in('movie_id', toDelete);
+    if (delErr) return { count: 0, ok: false, error: delErr.message };
+  }
+  if (toInsert.length > 0) {
+    const { error: insErr } = await supabase
+      .from('watchlist_items')
+      .insert(toInsert.map((movie_id) => ({ user_id: userId, movie_id, first_seen_at: now })));
+    if (insErr) return { count: 0, ok: false, error: insErr.message };
+  }
 
   return { count: uniqueIds.length, ok: true };
 }
