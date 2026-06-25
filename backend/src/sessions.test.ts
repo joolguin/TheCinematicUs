@@ -55,7 +55,7 @@ describe('createSession', () => {
   it('desactiva las activas y devuelve la nueva', async () => {
     insertResult = { data: { id: 's3' }, error: null };
     expect(await createSession()).toEqual({ id: 's3' });
-    expect(updateMock).toHaveBeenCalledWith({ active: false });
+    expect(updateMock).toHaveBeenCalledWith({ active: false, ended_at: expect.any(String) });
   });
 
   it('guarda started_by', async () => {

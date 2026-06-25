@@ -15,7 +15,9 @@ export async function getActiveSession(): Promise<{ id: string; filters: Session
 // El índice único parcial `one_active_session` garantiza una sola activa: si dos llamadas
 // concurrentes insertan, una gana y la otra (error 23505) re-lee la ganadora.
 export async function createSession(startedBy?: string): Promise<{ id: string }> {
-  await supabase.from('sessions').update({ active: false }).eq('active', true);
+  // Cerrar la(s) sesión(es) activa(s) con timestamp de fin (la noche que termina).
+  await supabase.from('sessions')
+    .update({ active: false, ended_at: new Date().toISOString() }).eq('active', true);
   const { data, error } = await supabase
     .from('sessions')
     .insert({ mode: 'pool', active: true, started_by: startedBy ?? null })
