@@ -36,6 +36,7 @@ create table sessions (
   started_by text,
   filters jsonb,
   filters_updated_by text,
+  ended_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -44,7 +45,7 @@ create table sessions (
 create table watchlist_items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id),
-  movie_id uuid not null references movies(id),
+  movie_id uuid not null references movies(id) on delete cascade,
   first_seen_at timestamptz not null default now(),
   unique (user_id, movie_id)
 );
@@ -53,7 +54,7 @@ create table swipes (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
   user_id uuid not null references users(id),
-  movie_id uuid not null references movies(id),
+  movie_id uuid not null references movies(id) on delete cascade,
   liked boolean not null,
   created_at timestamptz not null default now(),
   unique (session_id, user_id, movie_id)
@@ -62,7 +63,7 @@ create table swipes (
 create table matches (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
-  movie_id uuid not null references movies(id),
+  movie_id uuid not null references movies(id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (session_id, movie_id)
 );
@@ -71,7 +72,7 @@ create table matches (
 -- novedad). Privado: revela qué pasó/likeó cada usuaria.
 create table user_movie_state (
   user_id uuid not null references users(id),
-  movie_id uuid not null references movies(id),
+  movie_id uuid not null references movies(id) on delete cascade,
   pass_count int not null default 0,
   last_passed_at timestamptz,
   last_liked_at timestamptz,
@@ -251,7 +252,7 @@ end $$;
 -- ─────────────────────────────────────────────────────────────
 create table if not exists user_movie_state (
   user_id uuid not null references users(id),
-  movie_id uuid not null references movies(id),
+  movie_id uuid not null references movies(id) on delete cascade,
   pass_count int not null default 0,
   last_passed_at timestamptz,
   last_liked_at timestamptz,
@@ -267,3 +268,26 @@ create policy "anon no lee user_movie_state" on user_movie_state for select to a
 -- Las filas existentes backfillean a now() por el default.
 -- ─────────────────────────────────────────────────────────────
 alter table watchlist_items add column if not exists first_seen_at timestamptz not null default now();
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M7 ended_at + FKs (2026-06-25): cierre de sesión con timestamp
+-- y ON DELETE CASCADE en los movie_id (borrar una peli arrastra sus filas
+-- dependientes; antes era restrict implícito). Idempotente.
+-- ─────────────────────────────────────────────────────────────
+alter table sessions add column if not exists ended_at timestamptz;
+
+alter table watchlist_items drop constraint if exists watchlist_items_movie_id_fkey;
+alter table watchlist_items add constraint watchlist_items_movie_id_fkey
+  foreign key (movie_id) references movies(id) on delete cascade;
+
+alter table swipes drop constraint if exists swipes_movie_id_fkey;
+alter table swipes add constraint swipes_movie_id_fkey
+  foreign key (movie_id) references movies(id) on delete cascade;
+
+alter table matches drop constraint if exists matches_movie_id_fkey;
+alter table matches add constraint matches_movie_id_fkey
+  foreign key (movie_id) references movies(id) on delete cascade;
+
+alter table user_movie_state drop constraint if exists user_movie_state_movie_id_fkey;
+alter table user_movie_state add constraint user_movie_state_movie_id_fkey
+  foreign key (movie_id) references movies(id) on delete cascade;
