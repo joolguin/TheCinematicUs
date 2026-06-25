@@ -93,7 +93,11 @@ app.post('/swipe', async (req, res) => {
     const { id: userId } = await getUserByName(user);
     const { id: sessionId } = await getActiveSession();
     const result = await recordSwipeAndDetectMatch(sessionId, userId, movieId, liked);
-    await recordMovieState(userId, movieId, liked);
+    try {
+      await recordMovieState(userId, movieId, liked);
+    } catch (e) {
+      console.error('[recordMovieState]', e);
+    }
     if (liked) await reconcileMatches(sessionId);
     res.json(result);
   } catch (e: any) {
