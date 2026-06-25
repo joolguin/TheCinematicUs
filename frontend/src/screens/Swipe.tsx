@@ -24,6 +24,10 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
   const [aviso, setAviso] = useState<string | null>(null);
   const [filters, setFilters] = useState<SessionFilters | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
+  // Banner de transición de noche nueva: 'reiniciando' mientras recarga el mazo,
+  // 'listo' cuando terminó. Atado al fin de loadDeck, no a un timeout arbitrario.
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
   const postTimer = useRef<number | undefined>(undefined);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -40,16 +44,24 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     api.get('/matches').then((r) => { setMatchCount(r.matches.length); setSessionId(r.sessionId); });
   }, []);
 
-  // Reacomoda la pantalla a la sesión `id` sin recargar la página.
-  function softReset(id: string) {
+  // Reacomoda la pantalla a la sesión `id` sin recargar la página. `by` = quién
+  // inició la noche (null/undefined = la inicié yo). Muestra el banner de
+  // transición y recién marca 'listo' cuando el mazo nuevo terminó de cargar.
+  async function softReset(id: string, by?: string | null) {
     setExpanded(false);
     setShowMatches(false);
     setChosen(null);
     setMatchCount(0);
     setSessionId(id);
     x.set(0);
+    const quien = by ? `${by} empezó una noche nueva` : 'Empezaste una noche nueva';
+    setResetMsg(`♻️ ${quien} · reiniciando mazo…`);
+    setResetting(true);
     setDeckLoaded(false);
-    loadDeck();
+    await loadDeck();
+    setResetting(false);
+    setResetMsg('✓ Mazo nuevo listo');
+    setTimeout(() => setResetMsg(null), 2000);
   }
 
   function applyLocalFilter(next: SessionFilters) {
@@ -68,11 +80,9 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     setTimeout(() => setAviso(null), 4000);
   }, [loadDeck]);
 
-  // En vivo: si la otra inicia una noche nueva, avisar y reacomodar.
-  useSessionListener(user, sessionId, (newSessionId) => {
-    setAviso(`Empezó una noche nueva`);
-    softReset(newSessionId);
-    setTimeout(() => setAviso(null), 4000);
+  // En vivo: si la otra inicia una noche nueva, reacomodar con el banner de transición.
+  useSessionListener(user, sessionId, (newSessionId, startedBy) => {
+    softReset(newSessionId, startedBy);
   }, onFiltersChanged);
 
   const bumpCount = useCallback(() => setMatchCount((c) => c + 1), []);
@@ -126,6 +136,11 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
           {aviso}
         </div>
       )}
+      {resetMsg && (
+        <div className="fixed top-3 inset-x-0 z-50 mx-auto w-fit rounded-full bg-rose-600 px-4 py-2 text-sm font-medium shadow-lg">
+          {resetMsg}
+        </div>
+      )}
       <header className="flex justify-between items-center py-2">
         <div className="flex items-center gap-2">
           <span className="text-neutral-500">{user}</span>
@@ -141,7 +156,12 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
       <FilterBar genres={genres} filters={filters} onChange={applyLocalFilter} />
 
       <div className="flex-1 relative">
-        {top ? (
+        {resetting ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-neutral-400">
+            <div className="text-2xl animate-pulse">♻️</div>
+            <div>Reiniciando mazo…</div>
+          </div>
+        ) : top ? (
           <motion.div
             key={top.id}
             style={{ x, rotate, opacity }}
@@ -169,7 +189,7 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
         )}
       </div>
 
-      {top && (
+      {top && !resetting && (
         <div className="flex justify-center gap-8 py-4">
           <button onClick={() => swipe(false)} aria-label="Paso" className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
             <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

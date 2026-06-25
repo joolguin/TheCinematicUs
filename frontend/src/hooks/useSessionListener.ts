@@ -6,7 +6,7 @@ import type { SessionFilters } from '../api';
 export function useSessionListener(
   user: UserName,
   sessionId: string | null,
-  onNewSession: (id: string) => void,
+  onNewSession: (id: string, startedBy: string | null) => void,
   onFiltersChanged?: (filters: SessionFilters | null, by: string) => void,
 ) {
   const sessionIdRef = useRef(sessionId);
@@ -25,7 +25,7 @@ export function useSessionListener(
           const nueva = payload.new as { id: string; started_by: string | null };
           if (nueva.id === sessionIdRef.current) return;
           if (nueva.started_by === user) return;
-          onNewSessionRef.current(nueva.id);
+          onNewSessionRef.current(nueva.id, nueva.started_by);
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions' },
         (payload) => {
