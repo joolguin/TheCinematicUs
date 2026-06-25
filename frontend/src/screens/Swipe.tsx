@@ -126,15 +126,18 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     if (!top) return;
     const movie = top;
     setDeck((d) => d.slice(1));
-    setLastSwiped(movie);
+    // Solo se puede deshacer un descarte (pass), no un like: si la otra también
+    // likeó hay match, y un match no se borra (como en apps de citas).
+    setLastSwiped(liked ? null : movie);
     setExpanded(false);
     x.set(0);
     // No incrementamos acá: el contador lo maneja SOLO el Realtime (MatchOverlay.onCount).
     await api.post('/swipe', { user, movieId: movie.id, liked });
   }
 
-  // Deshace el último swipe (single-level): vuelve la card arriba del mazo y
-  // borra el swipe en el backend (que también reconcilia el match si lo rompe).
+  // Deshace el último DESCARTE (single-level): vuelve la card arriba del mazo y
+  // borra el swipe en el backend. Solo aplica a passes (lastSwiped nunca se
+  // setea en un like), así que nunca toca un match.
   async function undo() {
     if (!lastSwiped) return;
     const movie = lastSwiped;
