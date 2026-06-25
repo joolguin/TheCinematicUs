@@ -28,6 +28,8 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
   // 'listo' cuando terminó. Atado al fin de loadDeck, no a un timeout arbitrario.
   const [resetMsg, setResetMsg] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  // Última peli swipeada, para deshacer (single-level).
+  const [lastSwiped, setLastSwiped] = useState<Movie | null>(null);
   const postTimer = useRef<number | undefined>(undefined);
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
@@ -53,6 +55,7 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     setChosen(null);
     setMatchCount(0);
     setSessionId(id);
+    setLastSwiped(null);
     x.set(0);
     const quien = by ? `${by} empezó una noche nueva` : 'Empezaste una noche nueva';
     setResetMsg(`♻️ ${quien} · reiniciando mazo…`);
@@ -123,10 +126,22 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
     if (!top) return;
     const movie = top;
     setDeck((d) => d.slice(1));
+    setLastSwiped(movie);
     setExpanded(false);
     x.set(0);
     // No incrementamos acá: el contador lo maneja SOLO el Realtime (MatchOverlay.onCount).
     await api.post('/swipe', { user, movieId: movie.id, liked });
+  }
+
+  // Deshace el último swipe (single-level): vuelve la card arriba del mazo y
+  // borra el swipe en el backend (que también reconcilia el match si lo rompe).
+  async function undo() {
+    if (!lastSwiped) return;
+    const movie = lastSwiped;
+    setLastSwiped(null);
+    setDeck((d) => [movie, ...d]);
+    x.set(0);
+    await api.post('/swipe/undo', { user, movieId: movie.id });
   }
 
   return (
@@ -154,6 +169,11 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
       </header>
       <PresenceBadge me={user} myStatus={myStatus} />
       <FilterBar genres={genres} filters={filters} onChange={applyLocalFilter} />
+      {deckLoaded && deck.length > 0 && (
+        <div className="text-center text-xs text-neutral-500 pb-1">
+          {deck.length} {deck.length === 1 ? 'peli' : 'pelis'} por ver
+        </div>
+      )}
 
       <div className="flex-1 relative">
         {resetting ? (
@@ -188,6 +208,12 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
           </div>
         )}
       </div>
+
+      {lastSwiped && !resetting && (
+        <div className="flex justify-center pb-2">
+          <button onClick={undo} className="text-sm text-neutral-400 underline">↩ Deshacer</button>
+        </div>
+      )}
 
       {top && !resetting && (
         <div className="flex justify-center gap-8 py-4">
