@@ -5,7 +5,7 @@ import { config } from './config.js';
 import { requirePassphrase } from './middleware/auth.js';
 import { supabase } from './db.js';
 import { getActiveSession, createSession } from './sessions.js';
-import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
+import { recordSwipeAndDetectMatch, reconcileMatches, undoSwipe } from './match.js';
 import { getUserByName } from './users.js';
 import { claimRefresh, runRefreshJob } from './refreshJob.js';
 import { applyFilters, collectGenres, type SessionFilters } from './filters.js';
@@ -107,6 +107,21 @@ app.post('/swipe', async (req, res) => {
     }
     if (liked) await reconcileMatches(sessionId);
     res.json(result);
+  } catch (e: any) {
+    console.error('[error endpoint]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Deshace el último swipe (single-level): borra el swipe y, si rompe la
+// mutualidad, el match. user_movie_state no se revierte (es solo pista de orden).
+app.post('/swipe/undo', async (req, res) => {
+  try {
+    const { user, movieId } = req.body as { user: string; movieId: string };
+    const { id: userId } = await getUserByName(user);
+    const { id: sessionId } = await getActiveSession();
+    await undoSwipe(sessionId, userId, movieId);
+    res.json({ ok: true });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });

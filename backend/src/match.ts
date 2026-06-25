@@ -55,3 +55,22 @@ export async function reconcileMatches(sessionId: string): Promise<void> {
     ),
   );
 }
+
+// Deshace el último swipe: borra la fila de swipes y, si esa peli ya no tiene 2
+// likers distintos en la sesión, borra el match (no dejar match fantasma por un
+// like accidental). Uniforme para pass y like: si era pass, el borrado del match
+// es no-op.
+export async function undoSwipe(
+  sessionId: string, userId: string, movieId: string,
+): Promise<void> {
+  await supabase.from('swipes').delete()
+    .eq('session_id', sessionId).eq('user_id', userId).eq('movie_id', movieId);
+
+  const { data: likers } = await supabase.from('swipes').select('user_id')
+    .eq('session_id', sessionId).eq('movie_id', movieId).eq('liked', true);
+  const distinct = new Set((likers ?? []).map((l: { user_id: string }) => l.user_id));
+  if (distinct.size < 2) {
+    await supabase.from('matches').delete()
+      .eq('session_id', sessionId).eq('movie_id', movieId);
+  }
+}
