@@ -9,6 +9,7 @@ import { recordSwipeAndDetectMatch, reconcileMatches } from './match.js';
 import { getUserByName } from './users.js';
 import { claimRefresh, runRefreshJob } from './refreshJob.js';
 import { applyFilters, collectGenres, type SessionFilters } from './filters.js';
+import { recordMovieState, getMovieStates, orderByNovelty } from './userMovieState.js';
 
 const app = express();
 app.use(cors());
@@ -58,7 +59,9 @@ app.get('/deck', async (req, res) => {
     const pool = movies ?? [];
     // genres se calcula del pool pendiente SIN filtrar, para poblar los chips
     // aunque el filtro activo excluya algunos.
-    res.json({ deck: applyFilters(pool, filters), genres: collectGenres(pool), filters });
+    const filtered = applyFilters(pool, filters);
+    const states = await getMovieStates(userId, filtered.map((m) => m.id));
+    res.json({ deck: orderByNovelty(filtered, states), genres: collectGenres(pool), filters });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });
@@ -90,6 +93,7 @@ app.post('/swipe', async (req, res) => {
     const { id: userId } = await getUserByName(user);
     const { id: sessionId } = await getActiveSession();
     const result = await recordSwipeAndDetectMatch(sessionId, userId, movieId, liked);
+    await recordMovieState(userId, movieId, liked);
     if (liked) await reconcileMatches(sessionId);
     res.json(result);
   } catch (e: any) {
