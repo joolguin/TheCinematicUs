@@ -233,7 +233,10 @@ export function Swipe({ user, onSwitch, onWatchlists }: { user: UserName; onSwit
       <MatchOverlay sessionId={sessionId} onCount={bumpCount} onChoose={setChosen} />
       {showMatches && (
         <Suspense fallback={null}>
-          <MatchesList onClose={() => setShowMatches(false)} />
+          <MatchesList
+            onClose={() => setShowMatches(false)}
+            onChoose={(m) => { setShowMatches(false); setChosen(m); }}
+          />
         </Suspense>
       )}
     </div>
