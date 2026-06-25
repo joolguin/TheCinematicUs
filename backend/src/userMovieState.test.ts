@@ -95,4 +95,32 @@ describe('orderByNovelty', () => {
     expect(orderByNovelty(movies, new Map()).map((m) => m.id)).toEqual(['a', 'b', 'c']);
     expect(orderByNovelty([], new Map())).toEqual([]);
   });
+
+  it('entre nunca-vistas, first_seen_at más reciente primero', () => {
+    const movies = [{ id: 'vieja' }, { id: 'nueva' }, { id: 'media' }];
+    const states = new Map(); // ninguna vista
+    const firstSeen = new Map([
+      ['vieja', '2026-01-01T00:00:00.000Z'],
+      ['media', '2026-03-01T00:00:00.000Z'],
+      ['nueva', '2026-06-01T00:00:00.000Z'],
+    ]);
+    expect(orderByNovelty(movies, states, firstSeen).map((m) => m.id)).toEqual(['nueva', 'media', 'vieja']);
+  });
+
+  it('una vista nunca pasa adelante de una nunca-vista, por más nueva que sea', () => {
+    const movies = [{ id: 'vistaNueva' }, { id: 'nuncaVistaVieja' }];
+    const states = new Map([
+      ['vistaNueva', { pass_count: 1, last_passed_at: '2026-06-01T00:00:00.000Z', last_liked_at: null }],
+    ]);
+    const firstSeen = new Map([
+      ['vistaNueva', '2026-06-20T00:00:00.000Z'],     // agregada muy reciente, pero ya vista
+      ['nuncaVistaVieja', '2026-01-01T00:00:00.000Z'], // vieja, pero nunca vista
+    ]);
+    expect(orderByNovelty(movies, states, firstSeen).map((m) => m.id)).toEqual(['nuncaVistaVieja', 'vistaNueva']);
+  });
+
+  it('sin firstSeen (omitido) se comporta como M4: nunca-vistas en orden de entrada', () => {
+    const movies = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(orderByNovelty(movies, new Map()).map((m) => m.id)).toEqual(['a', 'b', 'c']);
+  });
 });

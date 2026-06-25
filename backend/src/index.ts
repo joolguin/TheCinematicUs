@@ -47,8 +47,15 @@ app.get('/deck', async (req, res) => {
     const { id: sessionId, filters } = await getActiveSession();
 
     const { data: items } = await supabase
-      .from('watchlist_items').select('movie_id');
-    const movieIds = [...new Set((items ?? []).map((i) => i.movie_id))];
+      .from('watchlist_items').select('movie_id, first_seen_at');
+    // firstSeen por peli = máximo first_seen_at entre sus filas (recién agregada
+    // por cualquiera de las dos = nueva). Las cadenas ISO comparan cronológicamente.
+    const firstSeen = new Map<string, string>();
+    for (const it of (items ?? []) as { movie_id: string; first_seen_at: string }[]) {
+      const cur = firstSeen.get(it.movie_id);
+      if (!cur || it.first_seen_at > cur) firstSeen.set(it.movie_id, it.first_seen_at);
+    }
+    const movieIds = [...firstSeen.keys()];
 
     const { data: swiped } = await supabase
       .from('swipes').select('movie_id').eq('session_id', sessionId).eq('user_id', userId);
@@ -61,7 +68,7 @@ app.get('/deck', async (req, res) => {
     // aunque el filtro activo excluya algunos.
     const filtered = applyFilters(pool, filters);
     const states = await getMovieStates(userId, filtered.map((m) => m.id));
-    res.json({ deck: orderByNovelty(filtered, states), genres: collectGenres(pool), filters });
+    res.json({ deck: orderByNovelty(filtered, states, firstSeen), genres: collectGenres(pool), filters });
   } catch (e: any) {
     console.error('[error endpoint]', e);
     res.status(500).json({ error: e.message });

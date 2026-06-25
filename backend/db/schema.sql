@@ -45,6 +45,7 @@ create table watchlist_items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id),
   movie_id uuid not null references movies(id),
+  first_seen_at timestamptz not null default now(),
   unique (user_id, movie_id)
 );
 
@@ -259,3 +260,10 @@ create table if not exists user_movie_state (
 alter table user_movie_state enable row level security;
 drop policy if exists "anon no lee user_movie_state" on user_movie_state;
 create policy "anon no lee user_movie_state" on user_movie_state for select to anon using (false);
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M5 novedad watchlist (2026-06-25): first_seen_at en
+-- watchlist_items para mostrar primero las pelis recién agregadas.
+-- Las filas existentes backfillean a now() por el default.
+-- ─────────────────────────────────────────────────────────────
+alter table watchlist_items add column if not exists first_seen_at timestamptz not null default now();
