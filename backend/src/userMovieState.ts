@@ -49,18 +49,24 @@ export async function getMovieStates(
   return map;
 }
 
-// Orden por novedad: nunca-vistas primero; entre vistas, pasadas hace más tiempo
-// primero (last_passed_at null = época 0 = alta prioridad); desempate por menos
+// Orden por novedad: nunca-vistas primero; entre nunca-vistas, recién agregadas
+// a la watchlist primero (first_seen_at desc); entre vistas, pasadas hace más
+// tiempo primero (last_passed_at null = época 0 = alta prioridad), desempate por menos
 // pasadas. Sort estable → empate total preserva el orden de entrada.
 export function orderByNovelty<T extends { id: string }>(
-  movies: T[], states: Map<string, MovieState>,
+  movies: T[], states: Map<string, MovieState>, firstSeen: Map<string, string> = new Map(),
 ): T[] {
   return [...movies].sort((a, b) => {
     const sa = states.get(a.id);
     const sb = states.get(b.id);
     const seenA = sa ? 1 : 0;
     const seenB = sb ? 1 : 0;
-    if (seenA !== seenB) return seenA - seenB;
+    if (seenA !== seenB) return seenA - seenB;          // nunca-vistas primero
+    if (seenA === 0) {                                   // ambas nunca-vistas
+      const fa = firstSeen.get(a.id) ? Date.parse(firstSeen.get(a.id)!) : 0;
+      const fb = firstSeen.get(b.id) ? Date.parse(firstSeen.get(b.id)!) : 0;
+      return fb - fa;                                    // recién agregada primero
+    }
     const pa = sa?.last_passed_at ? Date.parse(sa.last_passed_at) : 0;
     const pb = sb?.last_passed_at ? Date.parse(sb.last_passed_at) : 0;
     if (pa !== pb) return pa - pb;
