@@ -1,14 +1,10 @@
-# TheCinematicUs 🐭🦆
-
-App web de matching de películas estilo Tinder, para **una pareja** (Jo 🐭 y Vale 🦆), para decidir qué ver sin pelear.
-
-Proyecto personal: solo para Jo y Vale, sin comercializar.
+# TheCinematicUs
 
 ---
 
-## 🎯 La idea (leer esto primero)
+## La idea 
 
-Jo y Vale quieren ver una peli juntas y les cuesta decidir. Las dos usan **Letterboxd** y mantienen watchlists públicas. El sistema arma un **pozo** con las películas de ambas watchlists y cada una **swipea** (estilo Tinder) qué se le antoja esa noche, **en privado**. Cuando **las dos** dan like a la misma peli → **match**, y esa es la candidata.
+Jo y Vale quieren ver una peli juntas y les cuesta decidir. Las dos usan **Letterboxd** y mantienen watchlists públicas. El sistema arma un **pozo** con las películas de ambas watchlists y cada una **swipea** qué se le antoja esa noche, **en privado**. Cuando **las dos** dan like a la misma peli → **match**, y esa es la candidata.
 
 **Dos principios de producto que gobiernan todas las decisiones técnicas:**
 
@@ -17,25 +13,8 @@ Jo y Vale quieren ver una peli juntas y les cuesta decidir. Las dos usan **Lette
 
 ---
 
-## 🧭 Estado actual (qué funciona hoy)
+## Arquitectura
 
-End-to-end funcional y desplegable. El flujo real hoy es:
-
-1. **Gate:** entrar con una frase secreta compartida (`APP_PASSPHRASE`). La URL es pública; la passphrase la mantiene privada.
-2. **Elegir quién soy:** Jo 🐭 / Vale 🦆 (usuarias fijas, sembradas en la DB).
-3. **Swipe directo:** como las watchlists persisten, se entra directo a swipear (no hay paso de import obligatorio).
-4. **Actualizar watchlists** (pantalla aparte, accesible desde el header de Swipe "🎬 Watchlists" y desde el estado de mazo vacío): un botón dispara el **scrape de ambas watchlists de Letterboxd** y rearma el pozo.
-5. **Swipear** cards mobile-first oscuras (gesto + botones 👍/👎), con toda la info de TMDB en la card.
-6. **Match en vivo** en las dos pantallas vía Supabase Realtime; los matches se acumulan y se ven en cualquier momento (❤️).
-7. **Nueva sesión** resetea la noche (mazo + matches), manteniendo el pozo.
-
-**Modo:** solo **"pozo común"** (unión de ambas watchlists). El modo "intersección" (solo lo que está en ambas) quedó **fuera de alcance**.
-
----
-
-## 🏗️ Arquitectura
-
-Tres piezas en tres lugares:
 
 ```
 ┌─────────────┐   REST (passphrase)   ┌──────────────┐   scrape HTTP   ┌────────────┐
@@ -55,12 +34,10 @@ Tres piezas en tres lugares:
 - **Backend (Render):** dueño de las keys privadas (TMDB, Supabase service role). Scrapea Letterboxd, resuelve/cachea TMDB, registra swipes, detecta matches, maneja sesiones. Es quien hace la **lectura cruzada** de likes que la privacidad prohíbe al frontend.
 - **DB (Supabase):** Postgres + Realtime + RLS.
 
-### Por qué el backend (y no el frontend) scrapea
-El frontend no puede scrapear Letterboxd (CORS) ni se le pueden confiar las keys privadas. El backend es el único punto con permiso de leer ambas watchlists/likes y cruzarlos — eso es lo que sostiene la privacidad.
 
 ---
 
-## 🗂️ Modelo de datos (tablas en Supabase)
+## Modelo de datos (tablas en Supabase)
 
 Definición canónica: `backend/db/schema.sql` (incluye migraciones idempotentes datadas; ver al final del archivo).
 
@@ -77,22 +54,7 @@ Definición canónica: `backend/db/schema.sql` (incluye migraciones idempotentes
 
 ---
 
-## 🔌 Endpoints del backend
-
-Todos pasan por `requirePassphrase` (header `x-passphrase`).
-
-| Método | Ruta | Qué hace |
-|---|---|---|
-| `GET` | `/auth/check` | Valida la passphrase sin efectos (para el gate). |
-| `POST` | `/watchlists/refresh` | Scrapea ambas watchlists y rearma el pozo. Respuesta `{ Jo:{count,ok,error?}, Vale:{...} }`. Síncrono (puede tardar con cache fría). |
-| `GET` | `/deck?user=<nombre>` | Mazo pendiente = unión de `watchlist_items` de **todas** − lo que esta usuaria swipeó en la sesión activa. |
-| `POST` | `/swipe` | Registra swipe; detecta match y reconcilia como backstop. |
-| `GET` | `/matches` | Matches de la sesión activa (reconcilia antes de leer). Devuelve también `sessionId` (baseline de la suscripción). |
-| `POST` | `/session` | Nueva noche: desactiva la anterior, crea una nueva (mazo y matches de cero). |
-
----
-
-## 🎬 Scraping de Letterboxd (el punto frágil — entender bien)
+## Scraping de Letterboxd (el punto frágil — entender bien)
 
 Todo el acoplamiento al HTML de Letterboxd vive **aislado** en `backend/src/letterboxd.ts`. Si algo se rompe del lado de Letterboxd, se arregla solo ahí.
 
@@ -102,12 +64,9 @@ Todo el acoplamiento al HTML de Letterboxd vive **aislado** en `backend/src/lett
 - **`scrapeWatchlist(url)`**: pagina, deduplica por `título|año`. Si termina con **0 films, lanza un error con diagnóstico** (`sin films (page 1: HTTP <status>, <bytes> bytes)`) para distinguir bloqueo (403) de markup cambiado o lista vacía.
 - **Replace-on-success por usuaria** (`backend/src/watchlists.ts`): si el scrape trae ≥1 peli, **borra e inserta** el set de esa usuaria; si trae 0 o falla, **mantiene** el set anterior y reporta el error. Las dos usuarias se procesan independientes (una puede fallar sin frenar a la otra). Un fallo al resolver TMDB también se aísla por usuaria.
 
-### ⚠️ Trampa conocida: Cloudflare desde IPs de datacenter
-Desde una IP **residencial** (tu Mac / Docker local) Letterboxd responde 200. Desde **Render** (IP de datacenter) Cloudflare puede responder **403 o una página-desafío** ⇒ scrape vacío. Mismo código, distinto resultado **según dónde corre**. Si en producción da vacío, el mensaje de error ahora dice el status HTTP de la página 1 — eso confirma si es bloqueo. Mitigaciones futuras si pasa: headers de browser más completos, proxy residencial, o import por CSV.
-
 ---
 
-## 🎞️ Resolución y cache de TMDB
+## Resolución y cache de TMDB
 
 `backend/src/movies.ts` → `resolveMovie(title, year)`:
 1. Busca en cache por `search_key` (`título|año` normalizado). Si está, devuelve su id.
@@ -118,7 +77,7 @@ El **primer scrape es lento** (muchas llamadas a TMDB); los siguientes son rápi
 
 ---
 
-## 🔁 Sesiones, match y tiempo real
+## Sesiones, match y tiempo real
 
 - **Una sola sesión activa** garantizada por el índice único parcial `one_active_session`. `createSession` desactiva la anterior y, ante carrera (error 23505), re-lee la ganadora.
 - **Match:** `recordSwipeAndDetectMatch` detecta al registrar el swipe; `reconcileMatches` es una **red de seguridad** que se corre antes de leer matches y tras cada like (cubre carreras). Un match = dos usuarias distintas likearon la misma peli en la misma sesión.
@@ -126,38 +85,11 @@ El **primer scrape es lento** (muchas llamadas a TMDB); los siguientes son rápi
 
 ---
 
-## 📁 Mapa del código
-
-```
-backend/src/
-  index.ts        Rutas Express (los endpoints de arriba)
-  config.ts       Lee el .env (incluye letterboxdUrls por nombre)
-  db.ts           Cliente Supabase (service role)
-  middleware/auth.ts   requirePassphrase
-  users.ts        getUserByName, getUsers
-  letterboxd.ts   AISLADO: parseWatchlistPage + scrapeWatchlist
-  watchlists.ts   refreshWatchlistForUser (replace-on-success) + refreshAllWatchlists
-  movies.ts       resolveMovie (cache TMDB + recuperación de conflictos)
-  tmdb.ts         searchAndEnrich, parseTitleLine
-  sessions.ts     getActiveSession, createSession
-  match.ts        recordSwipeAndDetectMatch, reconcileMatches
-  db/schema.sql   Esquema + migraciones idempotentes
-
-frontend/src/
-  App.tsx         Routing: gate → user → swipe (watchlists alcanzable desde swipe)
-  api.ts          fetch helper (mete x-passphrase) + tipo Movie
-  supabase.ts     Cliente anon (solo Realtime)
-  config.ts       API_URL, APP_NAME (VITE_*)
-  screens/        Gate, UserSelect, Watchlists, Swipe
-  components/     MovieCard, MatchOverlay, MatchesList, PresenceBadge
-  hooks/useSessionListener.ts   Suscripción a nuevas sesiones
-```
-
 **Stack:** React + Vite + TS + Tailwind + framer-motion (frontend) · Node + Express + TS (backend) · Postgres + Realtime vía Supabase. Monorepo con workspaces npm, todo en Docker para dev.
 
 ---
 
-## 🛠️ Correr local (Docker, aislado)
+## Correr local (Docker, aislado)
 
 Todo corre en contenedores: **no se instala Node ni dependencias en la Mac**. (El root `package.json` usa workspaces; el código real se monta por volumen, con hot reload vía `tsx watch` / Vite.)
 
@@ -177,9 +109,7 @@ Todo corre en contenedores: **no se instala Node ni dependencias en la Mac**. (E
 
 ---
 
-## 🔑 Variables de entorno
-
-Ver `.env.example`. `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_API_KEY` y las `LETTERBOXD_URL_*` van **solo** en el backend; nunca en el frontend.
+## Variables de entorno
 
 | Variable | Dónde | Notas |
 |---|---|---|
@@ -195,16 +125,9 @@ Ver `.env.example`. `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_API_KEY` y las `LETTERBOX
 | `VITE_SUPABASE_URL` | frontend | Project URL, **sin** `/rest/v1/` |
 | `VITE_SUPABASE_ANON_KEY` | frontend | publishable key (`sb_publishable_...`) |
 
-**Quién usa qué watchlist:** Jo = `joolguin`, Vale = `thecinematicme` (la pareja). *(No confundir con `camiolguin`, que es otra cuenta de un experimento viejo.)*
-
-### ⚠️ Trampas de entorno (nos costaron tiempo)
-- **`VITE_API_URL` se "hornea" en build/arranque de Vite.** Si el dev server arrancó apuntando a Render, el bundle abierto sigue llamando a Render aunque cambies el `.env`. Reiniciá el frontend tras cambiar `VITE_*`.
-- **Sin barra final en `VITE_API_URL`** (si no, queda `//watchlists/refresh`).
-- **Staging y Producción comparten el mismo Supabase/TMDB** en el `.env` actual → probar en local **escribe en la misma DB que producción**. No hay aislamiento real (aceptable para 2 personas, pero tenerlo presente).
-
 ---
 
-## 🚀 Deploy
+## Deploy
 
 Tres piezas, tres lugares (orden: Supabase → Backend → Frontend):
 - **DB:** Supabase. Ejecutar `backend/db/schema.sql` (la migración del pozo persistente desacopla `watchlist_items` de sesiones — correr una vez).
@@ -215,21 +138,7 @@ Regla mnemónica: `VITE_*` → Vercel; todo lo demás → Render.
 
 ---
 
-## 🧊 Diferido / fuera de alcance (decisiones conscientes)
+## Diferido / fuera de alcance
 
-- **Modo intersección** (solo lo que está en ambas watchlists): fuera de alcance; solo "pozo común".
-- **Broadcast automático del pozo + aviso "se actualizó el pozo":** diferido. Sin un trigger de broadcast no hay nada a lo que reaccionar, y `Swipe` ya re-fetchea el deck al montar / en cada reset de sesión. Si se agrega el broadcast, ahí entra el aviso.
 - **Carga manual de títulos y CSV:** eliminados (antes existía un `/import` con textarea; lo reemplazó el scrape).
 - **UI para editar las URLs de Letterboxd:** no hay; se setean por env.
-
----
-
-## 📚 Specs y planes (historia del diseño)
-
-En `docs/superpowers/`:
-- `specs/2026-06-22-moviematch-fase1-design.md` · `plans/2026-06-22-moviematch-fase1.md` — MVP.
-- `specs/2026-06-23-bloque-critico-sesiones-match-design.md` — sesiones/match.
-- `specs/2026-06-23-mejoras-ux-performance-design.md` — UX/perf.
-- `specs/2026-06-23-letterboxd-watchlists-design.md` · `plans/2026-06-23-letterboxd-watchlists.md` — **watchlists de Letterboxd (este feature)**. *(El spec dice URLs en DB; se cambió a env después — el código y este README son la fuente de verdad.)*
-
-> El esquema del spec menciona seed de URLs en la DB; la implementación final las movió al **env**. Ante discrepancia, gana el código.
