@@ -52,7 +52,7 @@ function Menu({ count, onClose, onRuleta, onRonda }: { count: number; onClose: (
         <div className="w-[60px]" />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-5 pt-6 pb-12 gap-3.5">
-        <p className="text-[13px] text-[#4a4a62] mb-2.5 text-center">Elegí cómo decidir entre los {count} matches</p>
+        <p className="text-[13px] text-[#4a4a62] mb-2.5 text-center">Elige cómo decidir entre los {count} matches</p>
         <button onClick={onRuleta} className="w-full bg-[#111118] border-[1.5px] border-[#26263a] rounded-[22px] px-5 py-6 flex flex-col items-center gap-3">
           <span className="w-14 h-14 rounded-full bg-[#16161f] border-[1.5px] border-[#26263a] flex items-center justify-center shrink-0">
             <Disc3 size={30} color="#a78bfa" />

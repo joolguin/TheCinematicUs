@@ -100,10 +100,6 @@ export function Watchlists({ user, onDone, onSwitch }: { user: UserName; onDone:
         </div>
         <button onClick={onSwitch} className="text-[12px] text-[#4a4a62] py-1">Cambiar usuaria</button>
       </div>
-      <p className="text-[13px] text-[#4a4a62] leading-[1.65] mb-[22px]">
-        El pozo se llena con las watchlists públicas de Letterboxd de las dos. Podés actualizarlas en
-        cualquier momento.
-      </p>
 
       {/* Estado inactivo: mostramos el último recuento conocido si lo hay. */}
       {!running && !settled && (

@@ -9,7 +9,6 @@ export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
       <p className="text-[10px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">
         TheCinematicUs
       </p>
-      <p className="text-[13px] text-[#3a3a50] mb-[38px]">Elegí tu personaje para esta noche</p>
       <div className="flex gap-3.5 w-full">
         {users.map((u) => (
           <button
