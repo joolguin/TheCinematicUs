@@ -1,17 +1,22 @@
-import { useState } from 'react';
 import type { SessionFilters } from '../api';
 
 const EMPTY: SessionFilters = { maxRuntime: null, excludeGenres: [] };
 
+// Panel de filtros como bottom-sheet controlado desde Swipe (el botón ☰ vive en
+// el header). Se muestra sólo cuando `open` es true.
 export function FilterBar({
-  genres, filters, onChange,
-}: { genres: string[]; filters: SessionFilters | null; onChange: (f: SessionFilters) => void }) {
-  const [open, setOpen] = useState(false);
+  genres, filters, open, onChange, onClose,
+}: {
+  genres: string[];
+  filters: SessionFilters | null;
+  open: boolean;
+  onChange: (f: SessionFilters) => void;
+  onClose: () => void;
+}) {
   const current = filters ?? EMPTY;
-  const active = current.maxRuntime != null || current.excludeGenres.length > 0;
 
-  function setMaxRuntime(v: number | null) {
-    onChange({ ...current, maxRuntime: v });
+  function setMaxRuntime(v: number) {
+    onChange({ ...current, maxRuntime: v >= 240 ? null : v });
   }
   function toggleGenre(g: string) {
     const has = current.excludeGenres.includes(g);
@@ -21,53 +26,61 @@ export function FilterBar({
     });
   }
 
+  if (!open) return null;
+
+  const value = current.maxRuntime ?? 240;
+  const label = value >= 240 ? 'Sin límite' : `${value} min`;
+
   return (
-    <div className="mb-2 text-sm">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className={`rounded-lg px-3 py-1.5 ${active ? 'bg-rose-600' : 'bg-neutral-800'}`}
-      >
-        ☰ Filtros{active ? ' •' : ''}
-      </button>
-      {open && (
-        <div className="mt-2 rounded-lg bg-neutral-900 p-3 flex flex-col gap-3">
-          <label className="flex items-center gap-2">
-            <span className="w-24 text-neutral-400">Duración máx</span>
-            <input
-              type="range" min={60} max={240} step={15}
-              value={current.maxRuntime ?? 240}
-              onChange={(e) => setMaxRuntime(Number(e.target.value))}
-              className="flex-1"
-            />
-            <span className="w-20 text-right">
-              {current.maxRuntime == null ? 'sin límite' : `${current.maxRuntime} min`}
-            </span>
-            {current.maxRuntime != null && (
-              <button onClick={() => setMaxRuntime(null)} className="text-neutral-400 underline">
-                quitar
-              </button>
+    <>
+      <div onClick={onClose} className="absolute inset-0 bg-[rgba(9,9,14,.7)] z-[65]" />
+      <div className="absolute bottom-0 inset-x-0 bg-[#111118] rounded-t-[22px] border-t border-[#1e1e2a] px-[18px] pt-[18px] pb-7 z-[70] animate-slideUp">
+        <div className="flex justify-between items-center mb-[18px]">
+          <h3 className="font-display text-[17px] text-[#f8f8fa] font-bold">Filtros</h3>
+          <button onClick={onClose} className="text-[#4a4a62] text-[13px] px-1.5 py-1">Cerrar</button>
+        </div>
+
+        <div className="mb-5">
+          <div className="flex justify-between items-center mb-[11px]">
+            <span className="text-[13px] text-[#8888a0] font-medium">Duración máxima</span>
+            <span className="text-[13px] text-[#a78bfa] font-semibold">{label}</span>
+          </div>
+          <input
+            type="range"
+            min={60}
+            max={240}
+            step={15}
+            value={value}
+            onChange={(e) => setMaxRuntime(Number(e.target.value))}
+          />
+        </div>
+
+        <div>
+          <p className="text-[13px] text-[#8888a0] font-medium mb-2.5">Géneros a excluir</p>
+          <div className="flex flex-wrap gap-[7px]">
+            {genres.map((g) => {
+              const ex = current.excludeGenres.includes(g);
+              return (
+                <button
+                  key={g}
+                  onClick={() => toggleGenre(g)}
+                  className="rounded-[20px] px-3.5 py-[7px] text-[13px] transition-all"
+                  style={{
+                    background: ex ? 'rgba(30,30,42,.5)' : 'rgba(124,58,237,.15)',
+                    border: `1px solid ${ex ? '#26263a' : 'rgba(124,58,237,.38)'}`,
+                    color: ex ? '#3a3a50' : '#c4b5fd',
+                  }}
+                >
+                  {g}
+                </button>
+              );
+            })}
+            {genres.length === 0 && (
+              <span className="text-[#3a3a50] text-[13px]">Sin géneros en el mazo</span>
             )}
-          </label>
-          <div className="flex flex-col gap-1">
-            <span className="text-neutral-400">Excluir géneros</span>
-            <div className="flex flex-wrap gap-1.5">
-              {genres.map((g) => {
-                const excluded = current.excludeGenres.includes(g);
-                return (
-                  <button
-                    key={g}
-                    onClick={() => toggleGenre(g)}
-                    className={`rounded-full px-2.5 py-1 ${excluded ? 'bg-rose-600 line-through' : 'bg-neutral-800'}`}
-                  >
-                    {g}
-                  </button>
-                );
-              })}
-              {genres.length === 0 && <span className="text-neutral-600">sin géneros en el mazo</span>}
-            </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -49,12 +49,13 @@ export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: Presen
 
   const other: UserName = me === 'Jo' ? 'Vale' : 'Jo';
   const texto = otherStatus ? LABEL[otherStatus] : 'desconectada';
-  const color = otherStatus ? 'bg-emerald-500' : 'bg-neutral-600';
 
   return (
-    <div className="flex items-center gap-1.5 py-1 text-xs text-neutral-400">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
-      <span>{other}: {texto}</span>
+    <div className="flex items-center gap-1.5">
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${otherStatus ? 'bg-[#4ade80] animate-dotPulse' : 'bg-[#3a3a50]'}`}
+      />
+      <span className="text-[11px] text-[#3a3a50]">{other}: {texto}</span>
     </div>
   );
 }
