@@ -6,7 +6,7 @@ export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
   const users: UserName[] = ['Jo', 'Vale'];
   return (
     <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-5 pb-12 animate-fadeUp">
-      <p className="text-[10px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">
+      <p className="text-[13px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">
         TheCinematicUs
       </p>
       <div className="flex gap-3.5 w-full">

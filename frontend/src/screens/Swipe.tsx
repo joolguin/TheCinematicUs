@@ -122,7 +122,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   if (chosen) {
     return (
       <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-6 pb-8 text-center overflow-y-auto animate-fadeUp">
-        <p className="text-[10px] text-[#7c3aed] tracking-[0.2em] uppercase font-semibold mb-4">Esta noche ven</p>
+        <p className="text-[13px] text-[#7c3aed] tracking-[0.2em] uppercase font-semibold mb-4">Esta noche ven</p>
         <div className="w-40 rounded-[16px] overflow-hidden mb-4 shrink-0 [animation:glowPulse_3s_ease_infinite,popIn_.5s_ease_both]">
           <div
             className="w-full aspect-[2/3] bg-cover bg-center"
@@ -130,18 +130,18 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
           />
         </div>
         <h2 className="font-display text-[23px] text-[#f8f8fa] font-bold leading-[1.2] mb-[5px] [text-wrap:pretty]">{chosen.title}</h2>
-        <p className="text-[13px] text-[#3a3a50] mb-[3px]">
+        <p className="text-[16px] text-[#3a3a50] mb-[3px]">
           {chosen.year}{chosen.runtime ? ` · ${runtimeLabel(chosen.runtime)}` : ''}
         </p>
-        {chosen.director && <p className="text-[12px] text-[#3a3a50] italic mb-[22px]">Dir. {chosen.director}</p>}
+        {chosen.director && <p className="text-[15px] text-[#3a3a50] italic mb-[22px]">Dir. {chosen.director}</p>}
         <div className="flex items-center justify-center gap-3.5 mb-6">
           <img src={AVATAR.Jo} className="w-[38px] h-[38px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING.Jo }} />
           <span className="text-[#3a3a50] text-[18px]">+</span>
           <img src={AVATAR.Vale} className="w-[38px] h-[38px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING.Vale }} />
         </div>
         <div className="flex gap-2.5 w-full">
-          <button onClick={() => setChosen(null)} className="flex-1 bg-[#111118] text-[#6b6b82] border-[1.5px] border-[#26263a] rounded-[14px] py-[13px] text-[14px]">Elegir otra</button>
-          <button onClick={nuevaSesion} className="flex-1 bg-[#7c3aed] text-white rounded-[14px] py-[13px] text-[14px] font-semibold">Nueva noche</button>
+          <button onClick={() => setChosen(null)} className="flex-1 bg-[#111118] text-[#6b6b82] border-[1.5px] border-[#26263a] rounded-[14px] py-[13px] text-[17px]">Elegir otra</button>
+          <button onClick={nuevaSesion} className="flex-1 bg-[#7c3aed] text-white rounded-[14px] py-[13px] text-[17px] font-semibold">Nueva noche</button>
         </div>
       </div>
     );
@@ -175,7 +175,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   return (
     <div className="min-h-screen max-w-[430px] mx-auto flex flex-col relative overflow-hidden animate-fadeUp">
       {aviso && (
-        <div className="fixed top-3 inset-x-0 z-40 mx-auto w-fit rounded-[20px] bg-[#141420] border border-[#26263a] px-3.5 py-1.5 text-[12px] text-[#5a5a72] animate-slideDown">
+        <div className="fixed top-3 inset-x-0 z-40 mx-auto w-fit rounded-[20px] bg-[#141420] border border-[#26263a] px-3.5 py-1.5 text-[15px] text-[#5a5a72] animate-slideDown">
           {aviso}
         </div>
       )}
@@ -184,27 +184,27 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
       <div className="flex justify-between items-center px-3.5 pt-1.5 pb-1 shrink-0">
         <button onClick={onWatchlists} className="flex items-center gap-1.5 py-1">
           <img src={AVATAR[user]} className="w-[22px] h-[22px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING[user] }} />
-          <span className="text-[13px] text-[#f8f8fa] font-medium">{user}</span>
-          <span className="text-[11px] text-[#3a3a50] ml-0.5">watchlists</span>
+          <span className="text-[16px] text-[#f8f8fa] font-medium">{user}</span>
+          <span className="text-[14px] text-[#3a3a50] ml-0.5">watchlists</span>
         </button>
         <div className="flex gap-[7px] items-center">
           <button
             onClick={() => setShowFiltros((f) => !f)}
             aria-label="Filtros"
-            className="rounded-[20px] px-2.5 py-[6px] text-[12px] flex items-center gap-1 bg-[#111118]"
+            className="rounded-[20px] px-2.5 py-[6px] text-[15px] flex items-center gap-1 bg-[#111118]"
             style={{
               color: activeFilter ? '#a78bfa' : '#4a4a62',
               border: `1px solid ${activeFilter ? 'rgba(124,58,237,.4)' : '#26263a'}`,
             }}
           >
-            <SlidersHorizontal size={13} />
+            <SlidersHorizontal size={17} />
             {activeFilter && <span className="w-[5px] h-[5px] bg-[#a78bfa] rounded-full inline-block shrink-0" />}
           </button>
           <button onClick={confirmarNuevaSesion} aria-label="Nueva sesión" className="bg-[#111118] text-[#4a4a62] border border-[#26263a] rounded-[20px] px-2 py-[6px] flex items-center">
-            <RotateCcw size={13} />
+            <RotateCcw size={17} />
           </button>
-          <button onClick={() => setShowMatches(true)} className="bg-[#111118] border border-[#26263a] rounded-[20px] px-2.5 py-[5px] text-[12px] text-[#a78bfa] flex items-center gap-1 font-medium">
-            <Heart size={11} color="#ec4899" fill="#ec4899" />{matchCount}
+          <button onClick={() => setShowMatches(true)} className="bg-[#111118] border border-[#26263a] rounded-[20px] px-2.5 py-[5px] text-[15px] text-[#a78bfa] flex items-center gap-1 font-medium">
+            <Heart size={15} color="#ec4899" fill="#ec4899" />{matchCount}
           </button>
         </div>
       </div>
@@ -213,7 +213,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
       <div className="flex justify-between items-center px-4 pt-0.5 pb-1.5 shrink-0">
         <PresenceBadge me={user} myStatus={myStatus} />
         {deckLoaded && !resetting && (
-          <span className="text-[11px] text-[#3a3a50]">{Math.max(0, deck.length)} por ver</span>
+          <span className="text-[14px] text-[#3a3a50]">{Math.max(0, deck.length)} por ver</span>
         )}
       </div>
 
@@ -227,7 +227,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
               border: `1px solid ${resetMsg.includes('✓') ? '#166534' : '#26263a'}`,
             }}
           >
-            <span className="text-[12px]" style={{ color: resetMsg.includes('✓') ? '#4ade80' : '#5a5a72' }}>{resetMsg}</span>
+            <span className="text-[15px]" style={{ color: resetMsg.includes('✓') ? '#4ade80' : '#5a5a72' }}>{resetMsg}</span>
           </div>
         </div>
       )}
@@ -237,7 +237,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         {resetting ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <div className="w-4 h-4 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
-            <div className="text-[#4a4a62] text-[13px]">Reiniciando mazo…</div>
+            <div className="text-[#4a4a62] text-[16px]">Reiniciando mazo…</div>
           </div>
         ) : top ? (
           <>
@@ -258,25 +258,25 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
             >
               <MovieCard movie={top} expanded={expanded} onToggle={() => setExpanded((e) => !e)} />
               <motion.div style={{ opacity: likeOpacity }} className="absolute top-[18px] left-3.5 border-[2.5px] border-[#7c3aed] rounded-lg px-3 py-1 pointer-events-none">
-                <span className="text-[#a78bfa] font-bold text-[13px] tracking-[0.12em]">LIKE</span>
+                <span className="text-[#a78bfa] font-bold text-[16px] tracking-[0.12em]">LIKE</span>
               </motion.div>
               <motion.div style={{ opacity: passOpacity }} className="absolute top-[18px] right-3.5 border-[2.5px] border-[#ef4444] rounded-lg px-3 py-1 pointer-events-none">
-                <span className="text-[#f87171] font-bold text-[13px] tracking-[0.12em]">PASS</span>
+                <span className="text-[#f87171] font-bold text-[16px] tracking-[0.12em]">PASS</span>
               </motion.div>
             </motion.div>
           </>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-8">
             <h3 className="font-display text-[21px] text-[#f8f8fa] font-bold">Terminaste tu mazo</h3>
-            <p className="text-[#3a3a50] text-[13px] leading-[1.65]">
+            <p className="text-[#3a3a50] text-[16px] leading-[1.65]">
               La otra sigue eligiendo…<br />mirá los matches mientras esperás.
             </p>
             {matchCount > 0 && (
-              <button onClick={() => setShowMatches(true)} className="bg-[#111118] border-[1.5px] border-[#26263a] text-[#a78bfa] rounded-[12px] px-[22px] py-[11px] text-[14px] mt-1.5 flex items-center gap-1.5">
-                Ver matches <Heart size={14} fill="currentColor" />
+              <button onClick={() => setShowMatches(true)} className="bg-[#111118] border-[1.5px] border-[#26263a] text-[#a78bfa] rounded-[12px] px-[22px] py-[11px] text-[17px] mt-1.5 flex items-center gap-1.5">
+                Ver matches <Heart size={18} fill="currentColor" />
               </button>
             )}
-            <button onClick={onWatchlists} className="text-[#3a3a50] text-[12px] mt-1 underline">Actualizar watchlists</button>
+            <button onClick={onWatchlists} className="text-[#3a3a50] text-[15px] mt-1 underline">Actualizar watchlists</button>
           </div>
         )}
       </div>
@@ -284,8 +284,8 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
       {/* Undo */}
       {lastSwiped && !resetting && (
         <div className="flex justify-center pt-1.5 shrink-0 animate-fadeUp">
-          <button onClick={undo} className="bg-[#111118] border border-[#26263a] text-[#5a5a72] rounded-[20px] px-4 py-[6px] text-[12px] flex items-center gap-1.5">
-            <Undo2 size={13} /><span>Deshacer</span>
+          <button onClick={undo} className="bg-[#111118] border border-[#26263a] text-[#5a5a72] rounded-[20px] px-4 py-[6px] text-[15px] flex items-center gap-1.5">
+            <Undo2 size={17} /><span>Deshacer</span>
           </button>
         </div>
       )}
@@ -293,8 +293,8 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
       {/* Botones de acción */}
       {top && !resetting && (
         <div className="flex justify-center items-center gap-[26px] px-5 pt-2.5 pb-3 shrink-0">
-          <button onClick={() => swipe(false)} aria-label="Paso" className="w-[58px] h-[58px] rounded-full bg-[#111118] border-[1.5px] border-[#26263a] text-[#4a4a62] flex items-center justify-center shrink-0"><X size={24} strokeWidth={2.5} /></button>
-          <button onClick={() => swipe(true)} aria-label="Me gusta" className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center shrink-0 shadow-[0_6px_30px_rgba(109,40,217,.55)]" style={{ background: 'linear-gradient(135deg,#6d28d9,#8b5cf6)' }}><Heart size={30} fill="currentColor" /></button>
+          <button onClick={() => swipe(false)} aria-label="Paso" className="w-[58px] h-[58px] rounded-full bg-[#111118] border-[1.5px] border-[#26263a] text-[#4a4a62] flex items-center justify-center shrink-0"><X size={28} strokeWidth={2.5} /></button>
+          <button onClick={() => swipe(true)} aria-label="Me gusta" className="w-[72px] h-[72px] rounded-full text-white flex items-center justify-center shrink-0 shadow-[0_6px_30px_rgba(109,40,217,.55)]" style={{ background: 'linear-gradient(135deg,#6d28d9,#8b5cf6)' }}><Heart size={34} fill="currentColor" /></button>
           <div className="w-[58px] shrink-0" />
         </div>
       )}

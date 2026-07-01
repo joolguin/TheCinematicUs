@@ -36,16 +36,16 @@ export function Gate({ onOk }: { onOk: () => void }) {
           }}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           placeholder="Frase secreta…"
-          className="w-full bg-[#111118] border-[1.5px] border-[#26263a] rounded-[14px] px-[18px] py-[15px] text-[16px] text-[#f8f8fa] outline-none"
+          className="w-full bg-[#111118] border-[1.5px] border-[#26263a] rounded-[14px] px-[18px] py-[15px] text-[18px] text-[#f8f8fa] outline-none"
         />
         <button
           onClick={submit}
-          className="bg-[#7c3aed] text-white rounded-[14px] py-4 text-[16px] font-semibold"
+          className="bg-[#7c3aed] text-white rounded-[14px] py-4 text-[18px] font-semibold"
         >
           Entrar
         </button>
         {error && (
-          <p className="text-[#f87171] text-[13px] text-center mt-0.5">
+          <p className="text-[#f87171] text-[16px] text-center mt-0.5">
             Frase incorrecta — intentá de nuevo
           </p>
         )}

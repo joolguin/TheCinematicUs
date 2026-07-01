@@ -55,7 +55,7 @@ export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: Presen
       <span
         className={`h-1.5 w-1.5 rounded-full ${otherStatus ? 'bg-[#4ade80] animate-dotPulse' : 'bg-[#3a3a50]'}`}
       />
-      <span className="text-[11px] text-[#3a3a50]">{other}: {texto}</span>
+      <span className="text-[14px] text-[#3a3a50]">{other}: {texto}</span>
     </div>
   );
 }

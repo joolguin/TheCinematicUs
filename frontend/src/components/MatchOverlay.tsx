@@ -107,7 +107,7 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
           <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
             {CONFETTI.map((s, i) => <div key={i} style={s} />)}
           </div>
-          <p className="text-[11px] text-[#7c3aed] tracking-[0.22em] uppercase font-semibold mb-2.5 relative z-[1]">¡Es un match!</p>
+          <p className="text-[14px] text-[#7c3aed] tracking-[0.22em] uppercase font-semibold mb-2.5 relative z-[1]">¡Es un match!</p>
           <div className="inline-flex gap-2.5 mb-3.5 relative z-[1] [animation:heartbeat_1.4s_ease-in-out_infinite]">
             <img src={AVATAR.Jo} className="w-[34px] h-[34px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING.Jo }} />
             <img src={AVATAR.Vale} className="w-[34px] h-[34px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING.Vale }} />
@@ -119,10 +119,10 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
             />
           </div>
           <h3 className="font-display text-[21px] text-[#f8f8fa] font-bold text-center leading-[1.2] mb-1 relative z-[1] [text-wrap:pretty]">{current.movie.title}</h3>
-          <p className="text-[13px] text-[#3a3a50] mb-5 relative z-[1]">{current.movie.year ? `(${current.movie.year})` : ''}</p>
+          <p className="text-[16px] text-[#3a3a50] mb-5 relative z-[1]">{current.movie.year ? `(${current.movie.year})` : ''}</p>
           <div className="flex flex-col gap-[9px] w-full relative z-[1]">
-            <button onClick={ver} className="text-white rounded-[14px] py-[15px] text-[15px] font-semibold shadow-[0_6px_28px_rgba(109,40,217,.5)]" style={{ background: 'linear-gradient(135deg,#6d28d9,#8b5cf6)' }}>Ver esta noche</button>
-            <button onClick={seguir} className="bg-[#111118] text-[#5a5a72] border-[1.5px] border-[#26263a] rounded-[14px] py-[13px] text-[14px]">Seguir buscando</button>
+            <button onClick={ver} className="text-white rounded-[14px] py-[15px] text-[18px] font-semibold shadow-[0_6px_28px_rgba(109,40,217,.5)]" style={{ background: 'linear-gradient(135deg,#6d28d9,#8b5cf6)' }}>Ver esta noche</button>
+            <button onClick={seguir} className="bg-[#111118] text-[#5a5a72] border-[1.5px] border-[#26263a] rounded-[14px] py-[13px] text-[17px]">Seguir buscando</button>
           </div>
         </motion.div>
       )}
