@@ -19,20 +19,37 @@ export function Gate({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-3xl font-semibold">{APP_NAME}</h1>
-      <input
-        type="password"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
-        placeholder="Frase secreta"
-        className="w-full max-w-xs rounded-lg bg-neutral-900 px-4 py-3 outline-none"
-      />
-      <button onClick={submit} className="rounded-lg bg-rose-600 px-6 py-3 font-medium">
-        Entrar
-      </button>
-      {error && <p className="text-rose-400">Frase incorrecta</p>}
+    <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-7 pb-12 animate-fadeUp">
+      <div className="text-center mb-12">
+        <h1 className="font-display text-[32px] font-bold text-[#f8f8fa] tracking-[-0.5px] leading-tight">
+          {APP_NAME}
+        </h1>
+      </div>
+
+      <div className="w-full flex flex-col gap-2.5">
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError(false);
+          }}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          placeholder="Frase secreta…"
+          className="w-full bg-[#111118] border-[1.5px] border-[#26263a] rounded-[14px] px-[18px] py-[15px] text-[16px] text-[#f8f8fa] outline-none"
+        />
+        <button
+          onClick={submit}
+          className="bg-[#7c3aed] text-white rounded-[14px] py-4 text-[16px] font-semibold"
+        >
+          Entrar
+        </button>
+        {error && (
+          <p className="text-[#f87171] text-[13px] text-center mt-0.5">
+            Frase incorrecta — intentá de nuevo
+          </p>
+        )}
+      </div>
     </div>
   );
 }

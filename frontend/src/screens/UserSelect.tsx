@@ -1,20 +1,24 @@
 // frontend/src/screens/UserSelect.tsx
-import { INITIALS, type UserName } from '../types';
+import type { UserName } from '../types';
+import { AVATAR } from '../assets/avatars';
 
 export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
   const users: UserName[] = ['Jo', 'Vale'];
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
-      <h2 className="text-xl text-neutral-400">¿Quién sos?</h2>
-      <div className="flex gap-4">
+    <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-5 pb-12 animate-fadeUp">
+      <p className="text-[10px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">
+        TheCinematicUs
+      </p>
+      <p className="text-[13px] text-[#3a3a50] mb-[38px]">Elegí tu personaje para esta noche</p>
+      <div className="flex gap-3.5 w-full">
         {users.map((u) => (
           <button
             key={u}
             onClick={() => onPick(u)}
-            className="flex flex-col items-center gap-2 rounded-2xl bg-neutral-900 px-8 py-6 text-lg"
+            className="flex-1 bg-[#111118] border-[1.5px] border-[#26263a] rounded-[24px] pt-[30px] pb-6 px-3 flex flex-col items-center gap-2.5"
           >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800 text-2xl font-semibold text-neutral-300">{INITIALS[u]}</span>
-            {u}
+            <img src={AVATAR[u]} className="w-[58px] h-[58px] rounded-full object-cover" />
+            <span className="font-display text-[22px] text-[#f8f8fa] font-bold">{u}</span>
           </button>
         ))}
       </div>
