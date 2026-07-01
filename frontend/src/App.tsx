@@ -39,8 +39,9 @@ export default function App() {
 
   if (screen === 'gate') return <Gate onOk={() => setScreen('user')} />;
   if (screen === 'user') return <UserSelect onPick={pick} />;
-  if (screen === 'watchlists') return <Watchlists onDone={() => setScreen('swipe')} />;
+  if (screen === 'watchlists' && user)
+    return <Watchlists user={user} onDone={() => setScreen('swipe')} onSwitch={switchUser} />;
   if (screen === 'swipe' && user)
-    return <Swipe user={user} onSwitch={switchUser} onWatchlists={() => setScreen('watchlists')} />;
+    return <Swipe user={user} onWatchlists={() => setScreen('watchlists')} />;
   return null;
 }
