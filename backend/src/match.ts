@@ -1,25 +1,17 @@
 import { supabase } from './db.js';
-import { TABLES } from './constants.js';
+import { TABLES, RPC } from './constants.js';
 
 export async function recordSwipeAndDetectMatch(
   sessionId: string, userId: string, movieId: string, liked: boolean,
 ): Promise<{ matched: boolean }> {
-  await supabase.from(TABLES.swipes).upsert(
-    { session_id: sessionId, user_id: userId, movie_id: movieId, liked },
-    { onConflict: 'session_id,user_id,movie_id' },
-  );
-
-  if (!liked) return { matched: false };
-
-  const { data: others } = await supabase
-    .from(TABLES.swipes).select('id')
-    .eq('session_id', sessionId).eq('movie_id', movieId).eq('liked', true)
-    .neq('user_id', userId);
-
-  if (!others || others.length === 0) return { matched: false };
-
-  await supabase.from(TABLES.matches).insert({ session_id: sessionId, movie_id: movieId });
-  return { matched: true };
+  const { data, error } = await supabase.rpc(RPC.recordSwipeAndDetectMatch, {
+    p_session_id: sessionId,
+    p_user_id: userId,
+    p_movie_id: movieId,
+    p_liked: liked,
+  });
+  if (error) throw error;
+  return { matched: data === true };
 }
 
 export async function reconcileMatches(sessionId: string): Promise<void> {

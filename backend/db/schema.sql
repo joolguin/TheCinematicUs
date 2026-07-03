@@ -291,3 +291,58 @@ alter table matches add constraint matches_movie_id_fkey
 alter table user_movie_state drop constraint if exists user_movie_state_movie_id_fkey;
 alter table user_movie_state add constraint user_movie_state_movie_id_fkey
   foreign key (movie_id) references movies(id) on delete cascade;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración perf swipe (2026-07-03): RPC record_swipe_and_detect_match.
+-- Upsert del swipe + detección de mutualidad + insert del match en UNA
+-- transacción (1 roundtrip desde el backend, antes 3). El backstop
+-- reconcileMatches sigue existiendo para la carrera de likes simultáneos
+-- (READ COMMITTED no ve la transacción concurrente no commiteada).
+-- EXECUTE solo para service_role: si anon pudiera llamarla, podría sondear
+-- los likes ajenos vía el boolean de retorno.
+-- ─────────────────────────────────────────────────────────────
+create or replace function record_swipe_and_detect_match(
+  p_session_id uuid,
+  p_user_id uuid,
+  p_movie_id uuid,
+  p_liked boolean
+) returns boolean
+language plpgsql
+set search_path = public
+as $$
+declare
+  other_liked boolean;
+begin
+  insert into swipes (session_id, user_id, movie_id, liked)
+  values (p_session_id, p_user_id, p_movie_id, p_liked)
+  on conflict (session_id, user_id, movie_id)
+  do update set liked = excluded.liked;
+
+  if not p_liked then
+    return false;
+  end if;
+
+  select exists (
+    select 1 from swipes
+    where session_id = p_session_id
+      and movie_id = p_movie_id
+      and liked
+      and user_id <> p_user_id
+  ) into other_liked;
+
+  if not other_liked then
+    return false;
+  end if;
+
+  insert into matches (session_id, movie_id)
+  values (p_session_id, p_movie_id)
+  on conflict (session_id, movie_id) do nothing;
+
+  return true;
+end;
+$$;
+
+revoke execute on function record_swipe_and_detect_match(uuid, uuid, uuid, boolean)
+  from public, anon, authenticated;
+grant execute on function record_swipe_and_detect_match(uuid, uuid, uuid, boolean)
+  to service_role;

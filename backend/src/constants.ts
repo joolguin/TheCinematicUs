@@ -21,6 +21,10 @@ export const SESSION_MODE = {
   pool: 'pool',
 } as const;
 
+export const RPC = {
+  recordSwipeAndDetectMatch: 'record_swipe_and_detect_match',
+} as const;
+
 export const POSTGRES_ERROR_CODE = {
   uniqueViolation: '23505',
 } as const;
