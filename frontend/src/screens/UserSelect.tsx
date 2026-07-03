@@ -1,9 +1,9 @@
-// frontend/src/screens/UserSelect.tsx
 import type { UserName } from '../types';
 import { AVATAR } from '../assets/avatars';
+import { USER_NAMES } from '../constants';
 
 export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
-  const users: UserName[] = ['Jo', 'Vale'];
+  const users = USER_NAMES;
   return (
     <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-5 pb-12 animate-fadeUp">
       <p className="text-[13px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">

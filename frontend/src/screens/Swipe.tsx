@@ -1,4 +1,3 @@
-// frontend/src/screens/Swipe.tsx
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { SlidersHorizontal, RotateCcw, Heart, X, Undo2 } from 'lucide-react';
@@ -10,7 +9,7 @@ import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
 import { FilterBar } from '../components/FilterBar';
-// Se carga solo al abrir el modal de matches (no se necesita en el primer paint).
+
 const MatchesList = lazy(() =>
   import('../components/MatchesList').then((m) => ({ default: m.MatchesList })),
 );
@@ -32,11 +31,10 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   const [aviso, setAviso] = useState<string | null>(null);
   const [filters, setFilters] = useState<SessionFilters | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
-  // Banner de transición de noche nueva: 'reiniciando' mientras recarga el mazo,
-  // 'listo' cuando terminó. Atado al fin de loadDeck, no a un timeout arbitrario.
+
   const [resetMsg, setResetMsg] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
-  // Última peli swipeada, para deshacer (single-level).
+
   const [lastSwiped, setLastSwiped] = useState<Movie | null>(null);
   const postTimer = useRef<number | undefined>(undefined);
   const x = useMotionValue(0);
@@ -51,14 +49,11 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   }, [user]);
 
   useEffect(() => { loadDeck(); }, [loadDeck]);
-  // Contador real + sessionId actual (baseline de la suscripción y scoping de matches vistos).
+
   useEffect(() => {
     api.get('/matches').then((r) => { setMatchCount(r.matches.length); setSessionId(r.sessionId); });
   }, []);
 
-  // Reacomoda la pantalla a la sesión `id` sin recargar la página. `by` = quién
-  // inició la noche (null/undefined = la inicié yo). Muestra el banner de
-  // transición y recién marca 'listo' cuando el mazo nuevo terminó de cargar.
   async function softReset(id: string, by?: string | null) {
     setExpanded(false);
     setShowMatches(false);
@@ -79,7 +74,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   }
 
   function applyLocalFilter(next: SessionFilters) {
-    setFilters(next); // feedback inmediato del control
+    setFilters(next);
     window.clearTimeout(postTimer.current);
     postTimer.current = window.setTimeout(async () => {
       await api.post('/session/filters', { user, filters: next });
@@ -94,20 +89,17 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
     setTimeout(() => setAviso(null), 4000);
   }, [loadDeck]);
 
-  // En vivo: si la otra inicia una noche nueva, reacomodar con el banner de transición.
   useSessionListener(user, sessionId, (newSessionId, startedBy) => {
     softReset(newSessionId, startedBy);
   }, onFiltersChanged);
 
   const bumpCount = useCallback(() => setMatchCount((c) => c + 1), []);
 
-  // Empezar una noche nueva: crea la sesión (queda quién la inició) y reacomoda localmente.
   async function nuevaSesion() {
     const s = await api.post('/session', { user });
     softReset(s.id);
   }
 
-  // Desde el header pedimos confirmación: reinicia la noche para las dos.
   async function confirmarNuevaSesion() {
     if (window.confirm('¿Empezar una sesión nueva? Se reinicia el mazo y los matches de esta noche para las dos.')) {
       await nuevaSesion();
@@ -118,7 +110,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   const myStatus: PresenceStatus = !deckLoaded ? 'en-linea' : deck.length > 0 ? 'swipeando' : 'termino';
   const activeFilter = !!filters && (filters.maxRuntime != null || filters.excludeGenres.length > 0);
 
-  // Película elegida: pantalla final, en vez de caer en "terminaste tu mazo".
   if (chosen) {
     return (
       <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-6 pb-8 text-center overflow-y-auto animate-fadeUp">
@@ -151,18 +142,14 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
     if (!top) return;
     const movie = top;
     setDeck((d) => d.slice(1));
-    // Solo se puede deshacer un descarte (pass), no un like: si la otra también
-    // likeó hay match, y un match no se borra (como en apps de citas).
+
     setLastSwiped(liked ? null : movie);
     setExpanded(false);
     x.set(0);
-    // No incrementamos acá: el contador lo maneja SOLO el Realtime (MatchOverlay.onCount).
+
     await api.post('/swipe', { user, movieId: movie.id, liked });
   }
 
-  // Deshace el último DESCARTE (single-level): vuelve la card arriba del mazo y
-  // borra el swipe en el backend. Solo aplica a passes (lastSwiped nunca se
-  // setea en un like), así que nunca toca un match.
   async function undo() {
     if (!lastSwiped) return;
     const movie = lastSwiped;
@@ -180,7 +167,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         </div>
       )}
 
-      {/* Header */}
       <div className="flex justify-between items-center px-3.5 pt-1.5 pb-1 shrink-0">
         <button onClick={onWatchlists} className="flex items-center gap-1.5 py-1">
           <img src={AVATAR[user]} className="w-[22px] h-[22px] rounded-full object-cover border-[1.5px]" style={{ borderColor: RING[user] }} />
@@ -209,7 +195,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         </div>
       </div>
 
-      {/* Presencia + count */}
       <div className="flex justify-between items-center px-4 pt-0.5 pb-1.5 shrink-0">
         <PresenceBadge me={user} myStatus={myStatus} />
         {deckLoaded && !resetting && (
@@ -217,7 +202,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         )}
       </div>
 
-      {/* Banner de sesión */}
       {resetMsg && (
         <div className="flex justify-center px-4 pb-1 shrink-0 animate-slideDown">
           <div
@@ -232,7 +216,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         </div>
       )}
 
-      {/* Deck */}
       <div className="flex-1 px-3 pt-0.5 relative overflow-visible min-h-0">
         {resetting ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
@@ -241,7 +224,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
           </div>
         ) : top ? (
           <>
-            {/* Cartas apiladas de fondo */}
             <div className="absolute inset-x-5 top-2.5 bottom-0 bg-[#14141d] rounded-[20px] z-0" />
             <div className="absolute inset-x-4 top-1.5 bottom-0 bg-[#0f0f17] rounded-[20px] z-0" />
 
@@ -281,7 +263,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         )}
       </div>
 
-      {/* Undo */}
       {lastSwiped && !resetting && (
         <div className="flex justify-center pt-1.5 shrink-0 animate-fadeUp">
           <button onClick={undo} className="bg-[#111118] border border-[#26263a] text-[#5a5a72] rounded-[20px] px-4 py-[6px] text-[15px] flex items-center gap-1.5">
@@ -290,7 +271,6 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
         </div>
       )}
 
-      {/* Botones de acción */}
       {top && !resetting && (
         <div className="flex justify-center items-center gap-[26px] px-5 pt-2.5 pb-3 shrink-0">
           <button onClick={() => swipe(false)} aria-label="Paso" className="w-[58px] h-[58px] rounded-full bg-[#111118] border-[1.5px] border-[#26263a] text-[#4a4a62] flex items-center justify-center shrink-0"><X size={28} strokeWidth={2.5} /></button>

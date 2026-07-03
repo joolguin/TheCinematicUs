@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let existingRow: any;     // fila leída por recordMovieState (maybeSingle)
-let statesRows: any[];    // filas devueltas por getMovieStates (.in)
+let existingRow: any;
+let statesRows: any[];
 const upsertMock = vi.fn();
 
 vi.mock('./db.js', () => ({
@@ -9,9 +9,9 @@ vi.mock('./db.js', () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
-          // recordMovieState: .eq('user_id').eq('movie_id').maybeSingle()
+
           eq: () => ({ maybeSingle: () => Promise.resolve({ data: existingRow }) }),
-          // getMovieStates: .eq('user_id').in('movie_id', ids)
+
           in: () => Promise.resolve({ data: statesRows }),
         }),
       }),
@@ -77,7 +77,7 @@ describe('orderByNovelty', () => {
       ['c', { pass_count: 1, last_passed_at: '2026-06-01T00:00:00.000Z', last_liked_at: null }],
       ['d', { pass_count: 0, last_passed_at: null, last_liked_at: '2026-06-10T00:00:00.000Z' }],
     ]);
-    // b nunca vista → primero. Entre vistas: d (null=0) < c (jun-01) < a (jun-20).
+
     expect(orderByNovelty(movies, states).map((m) => m.id)).toEqual(['b', 'd', 'c', 'a']);
   });
 
@@ -98,7 +98,7 @@ describe('orderByNovelty', () => {
 
   it('entre nunca-vistas, first_seen_at más reciente primero', () => {
     const movies = [{ id: 'vieja' }, { id: 'nueva' }, { id: 'media' }];
-    const states = new Map(); // ninguna vista
+    const states = new Map();
     const firstSeen = new Map([
       ['vieja', '2026-01-01T00:00:00.000Z'],
       ['media', '2026-03-01T00:00:00.000Z'],
@@ -113,8 +113,8 @@ describe('orderByNovelty', () => {
       ['vistaNueva', { pass_count: 1, last_passed_at: '2026-06-01T00:00:00.000Z', last_liked_at: null }],
     ]);
     const firstSeen = new Map([
-      ['vistaNueva', '2026-06-20T00:00:00.000Z'],     // agregada muy reciente, pero ya vista
-      ['nuncaVistaVieja', '2026-01-01T00:00:00.000Z'], // vieja, pero nunca vista
+      ['vistaNueva', '2026-06-20T00:00:00.000Z'],
+      ['nuncaVistaVieja', '2026-01-01T00:00:00.000Z'],
     ]);
     expect(orderByNovelty(movies, states, firstSeen).map((m) => m.id)).toEqual(['nuncaVistaVieja', 'vistaNueva']);
   });

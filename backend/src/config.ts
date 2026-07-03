@@ -1,10 +1,11 @@
-// backend/src/config.ts
 import 'dotenv/config';
 
+const DEFAULT_PORT = 3001;
+
 function required(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Falta la variable de entorno ${name}`);
-  return v;
+  const value = process.env[name];
+  if (!value) throw new Error(`Falta la variable de entorno ${name}`);
+  return value;
 }
 
 export const config = {
@@ -12,5 +13,5 @@ export const config = {
   supabaseUrl: required('SUPABASE_URL'),
   supabaseServiceKey: required('SUPABASE_SERVICE_ROLE_KEY'),
   appPassphrase: required('APP_PASSPHRASE'),
-  port: Number(process.env.PORT ?? 3001),
+  port: Number(process.env.PORT ?? DEFAULT_PORT),
 };

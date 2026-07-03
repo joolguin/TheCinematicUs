@@ -1,4 +1,3 @@
-// backend/src/match.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const upsertMock = vi.fn();
@@ -11,13 +10,13 @@ vi.mock('./db.js', () => ({
       if (table === 'swipes') {
         return {
           upsert: (...a: any[]) => { upsertMock(...a); return Promise.resolve({ error: null }); },
-          // cadena select().eq().eq().eq().neq()
+
           select: () => ({
             eq: () => ({ eq: () => ({ eq: () => ({ neq: () => Promise.resolve(othersResult()) }) }) }),
           }),
         };
       }
-      // tabla matches
+
       return {
         insert: (...a: any[]) => { insertMock(...a); return Promise.resolve({ error: null }); },
       };

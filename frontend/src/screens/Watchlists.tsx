@@ -4,6 +4,7 @@ import { api } from '../api';
 import { supabase } from '../supabase';
 import type { UserName } from '../types';
 import { AVATAR, RING } from '../assets/avatars';
+import { USER_NAMES } from '../constants';
 
 type RefreshResult = { count: number; ok: boolean; error?: string };
 type RefreshStatus = {
@@ -21,7 +22,6 @@ function dotColor(name: string): string {
   return RING[name as UserName] ?? '#a78bfa';
 }
 
-// "30 jun 2026, 14:05" — última vez que terminó de actualizarse el pozo.
 function formatUpdated(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -35,10 +35,10 @@ export function Watchlists({ user, onDone, onSwitch }: { user: UserName; onDone:
   const [status, setStatus] = useState<RefreshStatus>({ status: 'idle', result: null });
 
   useEffect(() => {
-    // Estado actual al abrir la pantalla.
+
     supabase.from('refresh_status').select('status, result, finished_at').eq('id', 1).maybeSingle()
       .then(({ data }) => { if (data) setStatus(data as RefreshStatus); });
-    // En vivo: el backend escribe refresh_status cuando termina.
+
     const channel = supabase
       .channel('refresh_status')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'refresh_status' },
@@ -49,7 +49,7 @@ export function Watchlists({ user, onDone, onSwitch }: { user: UserName; onDone:
 
   async function refresh() {
     await api.post('/watchlists/refresh', {});
-    // El estado real llega por Realtime; mostramos 'running' optimista.
+
     setStatus((s) => ({ ...s, status: 'running' }));
   }
 
@@ -101,7 +101,6 @@ export function Watchlists({ user, onDone, onSwitch }: { user: UserName; onDone:
         <button onClick={onSwitch} className="text-[15px] text-[#4a4a62] py-1">Cambiar usuaria</button>
       </div>
 
-      {/* Estado inactivo: mostramos el último recuento conocido si lo hay. */}
       {!running && !settled && (
         <div className="flex flex-col gap-2.5">
           <div className="bg-[#111118] border-[1.5px] border-[#26263a] rounded-[16px] px-[18px] py-4">
@@ -139,7 +138,7 @@ export function Watchlists({ user, onDone, onSwitch }: { user: UserName; onDone:
               <Loader2 size={20} className="animate-spin text-[#7c3aed] shrink-0" />
               <p className="text-[#a78bfa] text-[17px] font-medium">Actualizando en segundo plano…</p>
             </div>
-            {(entries.length > 0 ? entries.map(([n]) => n) : ['Jo', 'Vale']).map((name) => (
+            {(entries.length > 0 ? entries.map(([n]) => n) : USER_NAMES).map((name) => (
               <div key={name} className="flex justify-between">
                 <span className="text-[#6b6b82] text-[16px]">
                   <span

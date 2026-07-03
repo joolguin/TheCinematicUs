@@ -1,11 +1,10 @@
-// backend/src/users.ts
 import { supabase } from './db.js';
+import { TABLES } from './constants.js';
 
 export async function getUserByName(name: string): Promise<{ id: string }> {
   const { data, error } = await supabase
-    .from('users').select('id').eq('name', name).single();
+    .from(TABLES.users).select('id').eq('name', name).single();
   if (error) {
-    // Logueamos el detalle real de Supabase para diagnosticar (key inválida, RLS, etc.)
     console.error('[getUserByName] error de Supabase:', error);
     throw new Error(`Error consultando usuaria "${name}": ${error.message}`);
   }
@@ -20,7 +19,7 @@ export interface User {
 }
 
 export async function getUsers(): Promise<User[]> {
-  const { data, error } = await supabase.from('users').select('id, name, letterboxd_url');
+  const { data, error } = await supabase.from(TABLES.users).select('id, name, letterboxd_url');
   if (error) {
     console.error('[getUsers] error de Supabase:', error);
     throw new Error(`Error listando usuarias: ${error.message}`);

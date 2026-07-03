@@ -1,4 +1,3 @@
-// frontend/src/components/MovieCard.tsx
 import type { CSSProperties, ReactNode } from 'react';
 import { Star } from 'lucide-react';
 import type { Movie } from '../api';
@@ -8,7 +7,6 @@ function runtimeLabel(min: number | null): string {
   return `${Math.floor(min / 60)}h ${min % 60}m`;
 }
 
-// Estilo de póster vía background-image (evita el flicker del <img> al arrastrar).
 function posterStyle(movie: Movie): CSSProperties {
   return {
     position: 'absolute',
@@ -24,7 +22,7 @@ function posterStyle(movie: Movie): CSSProperties {
 export function MovieCard({ movie, expanded, onToggle }: {
   movie: Movie; expanded: boolean; onToggle: () => void;
 }) {
-  // Fila de metadatos: sólo campos presentes, separados por '·'.
+
   const meta: ReactNode[] = [];
   if (movie.year) meta.push(<span key="y" className="text-[#5a5a72] text-[15px]">({movie.year})</span>);
   if (movie.runtime) meta.push(<span key="r" className="text-[#5a5a72] text-[15px]">{runtimeLabel(movie.runtime)}</span>);

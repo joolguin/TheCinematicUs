@@ -1,4 +1,3 @@
-// frontend/src/components/PresenceBadge.tsx
 import { useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
@@ -12,14 +11,12 @@ const LABEL: Record<PresenceStatus, string> = {
 
 type TrackPayload = { user: UserName; status: PresenceStatus };
 
-// Encapsula el canal Realtime Presence: publica MI estado y muestra el de la OTRA.
 export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: PresenceStatus }) {
   const [otherStatus, setOtherStatus] = useState<PresenceStatus | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const myStatusRef = useRef<PresenceStatus>(myStatus);
   useEffect(() => { myStatusRef.current = myStatus; }, [myStatus]);
 
-  // Crear el canal una sola vez por usuaria.
   useEffect(() => {
     const channel = supabase.channel('presence', { config: { presence: { key: me } } });
     channelRef.current = channel;
@@ -42,7 +39,6 @@ export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: Presen
     return () => { supabase.removeChannel(channel); channelRef.current = null; };
   }, [me]);
 
-  // Re-trackear cuando cambia mi estado, sin recrear el canal.
   useEffect(() => {
     channelRef.current?.track({ user: me, status: myStatus });
   }, [me, myStatus]);

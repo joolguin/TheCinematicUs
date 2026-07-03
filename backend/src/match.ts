@@ -1,40 +1,33 @@
-// backend/src/match.ts
 import { supabase } from './db.js';
+import { TABLES } from './constants.js';
 
-// Registra el swipe y detecta match. La lectura cruzada (swipes de la otra usuaria)
-// la hace SOLO el backend con service role: el frontend nunca ve los likes ajenos.
 export async function recordSwipeAndDetectMatch(
   sessionId: string, userId: string, movieId: string, liked: boolean,
 ): Promise<{ matched: boolean }> {
-  await supabase.from('swipes').upsert(
+  await supabase.from(TABLES.swipes).upsert(
     { session_id: sessionId, user_id: userId, movie_id: movieId, liked },
     { onConflict: 'session_id,user_id,movie_id' },
   );
 
   if (!liked) return { matched: false };
 
-  // ¿La OTRA usuaria ya likeó esta peli en esta sesión?
   const { data: others } = await supabase
-    .from('swipes').select('id')
+    .from(TABLES.swipes).select('id')
     .eq('session_id', sessionId).eq('movie_id', movieId).eq('liked', true)
     .neq('user_id', userId);
 
   if (!others || others.length === 0) return { matched: false };
 
-  // Insert idempotente: unique(session_id, movie_id) evita duplicados.
-  await supabase.from('matches').insert({ session_id: sessionId, movie_id: movieId });
+  await supabase.from(TABLES.matches).insert({ session_id: sessionId, movie_id: movieId });
   return { matched: true };
 }
 
-// Backstop de carrera: crea las filas de match que la detección directa pudo perder
-// si ambas likearon en el mismo instante. Idempotente vía unique(session_id, movie_id).
 export async function reconcileMatches(sessionId: string): Promise<void> {
   const { data: likes } = await supabase
-    .from('swipes').select('movie_id, user_id')
+    .from(TABLES.swipes).select('movie_id, user_id')
     .eq('session_id', sessionId).eq('liked', true);
   if (!likes) return;
 
-  // Agrupar por peli contando usuarias DISTINTAS.
   const usersByMovie = new Map<string, Set<string>>();
   for (const { movie_id, user_id } of likes as { movie_id: string; user_id: string }[]) {
     const set = usersByMovie.get(movie_id) ?? new Set<string>();
@@ -48,7 +41,7 @@ export async function reconcileMatches(sessionId: string): Promise<void> {
 
   await Promise.all(
     matched.map((movieId) =>
-      supabase.from('matches').upsert(
+      supabase.from(TABLES.matches).upsert(
         { session_id: sessionId, movie_id: movieId },
         { onConflict: 'session_id,movie_id', ignoreDuplicates: true },
       ),
@@ -56,21 +49,17 @@ export async function reconcileMatches(sessionId: string): Promise<void> {
   );
 }
 
-// Deshace el último swipe: borra la fila de swipes y, si esa peli ya no tiene 2
-// likers distintos en la sesión, borra el match (no dejar match fantasma por un
-// like accidental). Uniforme para pass y like: si era pass, el borrado del match
-// es no-op.
 export async function undoSwipe(
   sessionId: string, userId: string, movieId: string,
 ): Promise<void> {
-  await supabase.from('swipes').delete()
+  await supabase.from(TABLES.swipes).delete()
     .eq('session_id', sessionId).eq('user_id', userId).eq('movie_id', movieId);
 
-  const { data: likers } = await supabase.from('swipes').select('user_id')
+  const { data: likers } = await supabase.from(TABLES.swipes).select('user_id')
     .eq('session_id', sessionId).eq('movie_id', movieId).eq('liked', true);
-  const distinct = new Set((likers ?? []).map((l: { user_id: string }) => l.user_id));
+  const distinct = new Set((likers ?? []).map((liker: { user_id: string }) => liker.user_id));
   if (distinct.size < 2) {
-    await supabase.from('matches').delete()
+    await supabase.from(TABLES.matches).delete()
       .eq('session_id', sessionId).eq('movie_id', movieId);
   }
 }

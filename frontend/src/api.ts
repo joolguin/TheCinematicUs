@@ -1,4 +1,3 @@
-// frontend/src/api.ts
 import { API_URL } from './config';
 
 export interface Movie {

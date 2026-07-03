@@ -1,11 +1,9 @@
-// frontend/src/components/MatchDecider.tsx
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Disc3, Swords, ArrowLeft, RotateCcw } from 'lucide-react';
 import type { Movie } from '../api';
 
 type Mode = 'menu' | 'ruleta' | 'ronda';
 
-// Póster vía background-image (consistente con el resto de la app).
 function poster(movie: Movie | null): CSSProperties {
   return {
     backgroundImage: movie?.poster_url ? `url(${movie.poster_url})` : 'none',
@@ -72,8 +70,6 @@ function Menu({ count, onClose, onRuleta, onRonda }: { count: number; onClose: (
   );
 }
 
-// Ruleta: cicla un resaltado por los pósters, desacelerando, hasta caer en uno
-// al azar. total % length === winnerIdx → aterriza en el ganador.
 function Ruleta({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Movie) => void; onBack: () => void }) {
   const [highlight, setHighlight] = useState(0);
   const [result, setResult] = useState<Movie | null>(null);
@@ -95,7 +91,6 @@ function Ruleta({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Mov
 
   useEffect(() => { spin(); return () => window.clearTimeout(timer.current); }, []);
 
-  // Columnas según cantidad para que todas las cartas entren sin scroll.
   const cols = matches.length <= 4 ? 2 : matches.length <= 9 ? 3 : 4;
 
   return (
@@ -123,8 +118,6 @@ function Ruleta({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Mov
       ) : (
         <div className="flex-1 flex flex-col items-center px-4 py-4 gap-3 min-h-0">
           <p className="text-[16px] text-[#4a4a62] text-center shrink-0 [animation:dotPulse_1s_ease-in-out_infinite]">Girando…</p>
-          {/* Grid que se ajusta al alto disponible: todas las cartas visibles sin scroll.
-              Más columnas a medida que crece la cantidad de matches. */}
           <div
             className="grid gap-2 w-full flex-1 min-h-0 p-1 content-center"
             style={{
@@ -155,8 +148,6 @@ function Ruleta({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Mov
   );
 }
 
-// Ronda rey de la colina: campeona vs siguiente; la elegida pasa a campeona;
-// hasta que no quedan retadoras. N-1 comparaciones.
 function Ronda({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Movie) => void; onBack: () => void }) {
   const [pool] = useState<Movie[]>(() => [...matches].sort(() => Math.random() - 0.5));
   const [champion, setChampion] = useState<Movie>(() => pool[0]);

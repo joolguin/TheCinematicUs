@@ -1,17 +1,16 @@
-// backend/src/reconcile.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let likes: any[];                 // filas de swipes likeados de la sesión
+let likes: any[];
 const upsertMatch = vi.fn();
 
 vi.mock('./db.js', () => ({
   supabase: {
     from: (table: string) => {
       if (table === 'swipes') {
-        // select('movie_id, user_id').eq('session_id', x).eq('liked', true)
+
         return { select: () => ({ eq: () => ({ eq: () => Promise.resolve({ data: likes }) }) }) };
       }
-      // tabla matches: upsert idempotente
+
       return { upsert: (...a: any[]) => { upsertMatch(...a); return Promise.resolve({ error: null }); } };
     },
   },
@@ -53,8 +52,8 @@ describe('reconcileMatches', () => {
   it('sólo reconcilia las pelis con match entre varias', async () => {
     likes = [
       { movie_id: 'm1', user_id: 'jo' },
-      { movie_id: 'm1', user_id: 'vale' },  // match
-      { movie_id: 'm2', user_id: 'jo' },    // sólo una
+      { movie_id: 'm1', user_id: 'vale' },
+      { movie_id: 'm2', user_id: 'jo' },
     ];
     await reconcileMatches('s');
     expect(upsertMatch).toHaveBeenCalledTimes(1);

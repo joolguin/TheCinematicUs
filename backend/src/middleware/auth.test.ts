@@ -1,4 +1,3 @@
-// backend/src/middleware/auth.test.ts
 import { describe, it, expect, vi } from 'vitest';
 import { requirePassphrase } from './auth.js';
 

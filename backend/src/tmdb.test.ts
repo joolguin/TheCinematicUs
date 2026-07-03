@@ -1,4 +1,3 @@
-// backend/src/tmdb.test.ts
 import { describe, it, expect } from 'vitest';
 import { parseTitleLine } from './tmdb.js';
 

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let claimData: any[];          // data devuelta por el .select('id') del claim
+let claimData: any[];
 let refreshResult: any;
 let reenrichResult: any;
 let refreshThrows = false;
 let reenrichThrows = false;
-const updateMock = vi.fn();     // captura los payloads de .update()
+const updateMock = vi.fn();
 
 vi.mock('./watchlists.js', () => ({
   refreshAllWatchlists: vi.fn(() =>
@@ -16,8 +16,6 @@ vi.mock('./movies.js', () => ({
     reenrichThrows ? Promise.reject(new Error('tmdb down')) : Promise.resolve(reenrichResult)),
 }));
 
-// El builder de supabase es "thenable": .update().eq() se puede await-ear
-// directo (runRefreshJob) y también encadenar .or().select() (claimRefresh).
 vi.mock('./db.js', () => ({
   supabase: {
     from: () => ({

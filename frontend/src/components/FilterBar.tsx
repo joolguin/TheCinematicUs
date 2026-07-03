@@ -2,8 +2,6 @@ import type { SessionFilters } from '../api';
 
 const EMPTY: SessionFilters = { maxRuntime: null, excludeGenres: [] };
 
-// Panel de filtros como bottom-sheet controlado desde Swipe (el botón ☰ vive en
-// el header). Se muestra sólo cuando `open` es true.
 export function FilterBar({
   genres, filters, open, onChange, onClose,
 }: {

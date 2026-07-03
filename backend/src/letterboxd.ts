@@ -1,19 +1,12 @@
-// backend/src/letterboxd.ts
-// ÚNICO módulo acoplado al HTML de Letterboxd. Si cambia el markup, se arregla acá.
-
 export interface ScrapedFilm {
   title: string;
   year: number | null;
 }
 
-// Cada poster es un react-component `LazyPoster` con el título y año juntos en
-// `data-item-name` (ej. `Parasite (2019)`). Los posters se cargan lazy, así que en
-// el HTML server-rendered NO hay <img alt>; este atributo es la fuente estable.
 const FILM_RE = /data-item-name="([^"]*)"/g;
 
-// Desescapa las entidades HTML más comunes en títulos.
-function unescapeHtml(s: string): string {
-  return s
+function unescapeHtml(text: string): string {
+  return text
     .replace(/&amp;/g, '&')
     .replace(/&#0?39;|&apos;/g, "'")
     .replace(/&quot;/g, '"')
@@ -28,26 +21,21 @@ function unescapeHtml(s: string): string {
 
 export function parseWatchlistPage(html: string): ScrapedFilm[] {
   const films: ScrapedFilm[] = [];
-  for (const m of html.matchAll(FILM_RE)) {
-    const name = unescapeHtml(m[1]).trim(); // "Parasite (2019)"
+  for (const match of html.matchAll(FILM_RE)) {
+    const name = unescapeHtml(match[1]).trim();
     if (!name) continue;
-    // Separa "Título (Año)"; si no hay año, queda null.
-    const ym = name.match(/^(.*?)\s*\((\d{4})\)\s*$/);
-    if (ym) films.push({ title: ym[1].trim(), year: Number(ym[2]) });
+    const titleWithYear = name.match(/^(.*?)\s*\((\d{4})\)\s*$/);
+    if (titleWithYear) films.push({ title: titleWithYear[1].trim(), year: Number(titleWithYear[2]) });
     else films.push({ title: name, year: null });
   }
   return films;
 }
 
-const MAX_PAGES = 50; // tope de seguridad ante un bucle inesperado
+const MAX_PAGES = 50;
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
-// Recorre las páginas de la watchlist hasta una vacía. Devuelve films deduplicados.
-// Si no encuentra ninguno, lanza con diagnóstico de la página 1 (status HTTP + bytes)
-// para distinguir bloqueo (403/503 desde IPs de datacenter) de markup cambiado o
-// watchlist realmente vacía.
 export async function scrapeWatchlist(url: string): Promise<ScrapedFilm[]> {
   const base = url.endsWith('/') ? url : url + '/';
   const seen = new Map<string, ScrapedFilm>();
@@ -56,16 +44,16 @@ export async function scrapeWatchlist(url: string): Promise<ScrapedFilm[]> {
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const pageUrl = page === 1 ? base : `${base}page/${page}/`;
-    const res = await fetch(pageUrl, { headers: { 'User-Agent': USER_AGENT } });
-    if (page === 1) firstStatus = res.status;
-    if (!res.ok) break;
-    const html = await res.text();
+    const response = await fetch(pageUrl, { headers: { 'User-Agent': USER_AGENT } });
+    if (page === 1) firstStatus = response.status;
+    if (!response.ok) break;
+    const html = await response.text();
     if (page === 1) firstBytes = html.length;
     const films = parseWatchlistPage(html);
     if (films.length === 0) break;
-    for (const f of films) {
-      const key = `${f.title.toLowerCase()}|${f.year ?? ''}`;
-      if (!seen.has(key)) seen.set(key, f);
+    for (const film of films) {
+      const key = `${film.title.toLowerCase()}|${film.year ?? ''}`;
+      if (!seen.has(key)) seen.set(key, film);
     }
   }
 

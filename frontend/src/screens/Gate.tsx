@@ -1,19 +1,19 @@
-// frontend/src/screens/Gate.tsx
 import { useState } from 'react';
 import { api } from '../api';
 import { APP_NAME } from '../config';
+import { STORAGE_KEYS } from '../constants';
 
 export function Gate({ onOk }: { onOk: () => void }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
 
   async function submit() {
-    localStorage.setItem('passphrase', value);
+    localStorage.setItem(STORAGE_KEYS.passphrase, value);
     try {
       await api.get('/auth/check');
       onOk();
     } catch {
-      localStorage.removeItem('passphrase');
+      localStorage.removeItem(STORAGE_KEYS.passphrase);
       setError(true);
     }
   }

@@ -1,14 +1,11 @@
-// backend/src/sessions.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let activeRow: any;        // lectura por defecto de la sesión activa
-let activeReads: any[] | null; // si está seteado, se consume en orden (para probar reintentos)
-let insertResult: any;     // { data, error } que devuelve el insert
+let activeRow: any;
+let activeReads: any[] | null;
+let insertResult: any;
 const updateMock = vi.fn();
 const insertMock = vi.fn();
 
-// Devuelve la siguiente lectura de "sesión activa": consume la cola si existe,
-// si no usa activeRow.
 function readActive() {
   if (activeReads && activeReads.length) return { data: activeReads.shift() };
   return { data: activeRow };
@@ -72,7 +69,7 @@ describe('createSession', () => {
 
   it('reintenta la lectura si la ganadora no es visible al primer intento', async () => {
     insertResult = { data: null, error: { code: '23505', message: 'duplicate' } };
-    activeReads = [null, { id: 'ganadora' }]; // 1ra lectura vacía, 2da trae la ganadora
+    activeReads = [null, { id: 'ganadora' }];
     expect(await createSession()).toEqual({ id: 'ganadora' });
   });
 

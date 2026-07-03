@@ -1,8 +1,6 @@
-// backend/src/movies.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Estado de los mocks (se resetea en beforeEach).
-let rows: Record<string, { id: string } | null>; // filas por `${col}:${val}`
+let rows: Record<string, { id: string } | null>;
 let insertResult: { data: any; error: any };
 let enrich: any;
 
@@ -19,7 +17,7 @@ vi.mock('./db.js', () => ({
           return {
             maybeSingle: () => Promise.resolve({ data }),
             single: () => Promise.resolve({ data }),
-            // search_key ahora se lee con .limit(1) → devuelve array
+
             limit: () => Promise.resolve({ data: data ? [data] : [] }),
           };
         },
@@ -62,16 +60,16 @@ describe('resolveMovie', () => {
   });
 
   it('ante conflicto por tmdb_id re-lee por tmdb_id (no por search_key)', async () => {
-    // El insert falla porque ya existe una peli con ese tmdb_id bajo OTRA search_key.
+
     insertResult = { data: null, error: { code: '23505', message: 'movies_tmdb_id_key' } };
     rows['tmdb_id:500'] = { id: 'existente' };
-    // search_key NO tiene fila (la existente entró con otra clave)
+
     expect(await resolveMovie('X', 2000)).toEqual({ id: 'existente' });
   });
 
   it('ante conflicto por search_key (carrera) re-lee por search_key', async () => {
     insertResult = { data: null, error: { code: '23505', message: 'movies_search_key_key' } };
-    enrich.tmdbId = null; // sin tmdb_id no hay colisión por tmdb_id
+    enrich.tmdbId = null;
     rows['search_key:x|2000'] = { id: 'ganadora' };
     expect(await resolveMovie('X', 2000)).toEqual({ id: 'ganadora' });
   });

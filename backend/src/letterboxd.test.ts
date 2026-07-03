@@ -1,9 +1,6 @@
-// backend/src/letterboxd.test.ts
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { parseWatchlistPage, scrapeWatchlist } from './letterboxd.js';
 
-// Markup real de Letterboxd (2026): cada poster es un react-component LazyPoster
-// con el título+año en `data-item-name`. Ya no hay `data-film-slug` ni <img alt>.
 const PAGE = `
 <ul class="poster-list">
   <li class="poster-container">

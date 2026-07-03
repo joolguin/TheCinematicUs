@@ -1,21 +1,18 @@
-// backend/src/watchlists.ts
 import { supabase } from './db.js';
 import { scrapeWatchlist } from './letterboxd.js';
 import { resolveMovie } from './movies.js';
 import { getUsers } from './users.js';
+import { TABLES } from './constants.js';
 
-// Si el set nuevo eliminaría más de esta fracción del pozo anterior, sospechamos
-// scrape degradado y mantenemos el set viejo en vez de vaciarlo.
 const MAX_REMOVAL_RATIO = 0.4;
 
 export interface RefreshResult {
   count: number;
   ok: boolean;
   error?: string;
-  kept?: boolean; // true = se mantuvo el set anterior por diff sospechoso
+  kept?: boolean;
 }
 
-// Replace-on-success: solo reemplaza el set si el scrape trajo ≥1 película.
 export async function refreshWatchlistForUser(
   userId: string,
   url: string | null,
@@ -25,27 +22,25 @@ export async function refreshWatchlistForUser(
   let films;
   try {
     films = await scrapeWatchlist(url);
-  } catch (e: any) {
-    return { count: 0, ok: false, error: e.message };
+  } catch (error: any) {
+    return { count: 0, ok: false, error: error.message };
   }
   if (films.length === 0) return { count: 0, ok: false, error: 'scrape vacío' };
 
-  // Resolver cada film (cache + TMDB) y deduplicar por movie_id.
   let ids: string[] = [];
   try {
-    for (const f of films) {
-      const { id } = await resolveMovie(f.title, f.year);
+    for (const film of films) {
+      const { id } = await resolveMovie(film.title, film.year);
       ids.push(id);
     }
-  } catch (e: any) {
-    return { count: 0, ok: false, error: e.message };
+  } catch (error: any) {
+    return { count: 0, ok: false, error: error.message };
   }
   const uniqueIds = [...new Set(ids)];
 
-  // Guardia anti-degradación: comparar contra el set actual.
   const { data: current } = await supabase
-    .from('watchlist_items').select('movie_id').eq('user_id', userId);
-  const prevIds = new Set((current ?? []).map((r: { movie_id: string }) => r.movie_id));
+    .from(TABLES.watchlistItems).select('movie_id').eq('user_id', userId);
+  const prevIds = new Set((current ?? []).map((row: { movie_id: string }) => row.movie_id));
   if (prevIds.size > 0) {
     const newIds = new Set(uniqueIds);
     const removed = [...prevIds].filter((id) => !newIds.has(id)).length;
@@ -60,34 +55,31 @@ export async function refreshWatchlistForUser(
     }
   }
 
-  // Diff-based: insertar las nuevas (con first_seen_at), no tocar las que siguen
-  // (preservan su first_seen_at), borrar las que ya no están.
   const now = new Date().toISOString();
   const newSet = new Set(uniqueIds);
   const toInsert = uniqueIds.filter((id) => !prevIds.has(id));
   const toDelete = [...prevIds].filter((id) => !newSet.has(id));
 
   if (toDelete.length > 0) {
-    const { error: delErr } = await supabase
-      .from('watchlist_items').delete().eq('user_id', userId).in('movie_id', toDelete);
-    if (delErr) return { count: 0, ok: false, error: delErr.message };
+    const { error: deleteError } = await supabase
+      .from(TABLES.watchlistItems).delete().eq('user_id', userId).in('movie_id', toDelete);
+    if (deleteError) return { count: 0, ok: false, error: deleteError.message };
   }
   if (toInsert.length > 0) {
-    const { error: insErr } = await supabase
-      .from('watchlist_items')
+    const { error: insertError } = await supabase
+      .from(TABLES.watchlistItems)
       .insert(toInsert.map((movie_id) => ({ user_id: userId, movie_id, first_seen_at: now })));
-    if (insErr) return { count: 0, ok: false, error: insErr.message };
+    if (insertError) return { count: 0, ok: false, error: insertError.message };
   }
 
   return { count: uniqueIds.length, ok: true };
 }
 
-// Procesa todas las usuarias de forma independiente: una puede fallar sin frenar a la otra.
 export async function refreshAllWatchlists(): Promise<Record<string, RefreshResult>> {
   const users = await getUsers();
-  const out: Record<string, RefreshResult> = {};
-  for (const u of users) {
-    out[u.name] = await refreshWatchlistForUser(u.id, u.letterboxd_url);
+  const results: Record<string, RefreshResult> = {};
+  for (const user of users) {
+    results[user.name] = await refreshWatchlistForUser(user.id, user.letterboxd_url);
   }
-  return out;
+  return results;
 }

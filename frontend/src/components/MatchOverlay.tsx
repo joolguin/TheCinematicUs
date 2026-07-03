@@ -1,11 +1,9 @@
-// frontend/src/components/MatchOverlay.tsx
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import { api, type Movie } from '../api';
 import { AVATAR, RING } from '../assets/avatars';
 
-// Confetti determinista (mismo patrón que el prototipo), calculado una vez.
 const CONFETTI: CSSProperties[] = Array.from({ length: 28 }, (_, i) => {
   const r = (n: number) => Math.abs(Math.sin(i * 9.301 + n * 49.756 + 1));
   const colors = ['#7c3aed', '#a78bfa', '#ddd6fe', '#f9a8d4', '#fbbf24', '#34d399', '#60a5fa'];
@@ -23,10 +21,8 @@ const CONFETTI: CSSProperties[] = Array.from({ length: 28 }, (_, i) => {
   } as CSSProperties;
 });
 
-// Un match en cola para mostrar: el id del match + los datos de la peli.
 type Queued = { matchId: string; movie: Movie };
 
-// Matches ya mostrados en ESTE dispositivo, scopeados por sesión (no se arrastran entre noches).
 function seenKey(sessionId: string) { return `seenMatches:${sessionId}`; }
 function getSeen(sessionId: string): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(seenKey(sessionId)) ?? '[]')); }
@@ -38,7 +34,6 @@ function markSeen(sessionId: string, matchId: string) {
   localStorage.setItem(seenKey(sessionId), JSON.stringify([...s]));
 }
 
-// /matches devuelve { sessionId, matches: [{ matchId, ...camposDePeli }] }
 async function fetchMatches(): Promise<{ sessionId: string; items: Queued[] }> {
   const { sessionId, matches } = await api.get('/matches');
   const items = (matches as (Movie & { matchId: string })[]).map((m) => ({ matchId: m.matchId, movie: m }));
@@ -58,7 +53,6 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
     });
   }
 
-  // Al entrar o al cambiar de sesión (noche nueva): limpiar la cola y encolar los no vistos.
   useEffect(() => {
     if (!sessionId) return;
     setQueue([]);
@@ -71,7 +65,6 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
     return () => { active = false; };
   }, [sessionId]);
 
-  // En vivo: un match nuevo de ESTA sesión aparece al instante en ambas pantallas.
   useEffect(() => {
     const channel = supabase
       .channel('matches')
@@ -80,7 +73,7 @@ export function MatchOverlay({ sessionId, onCount, onChoose }: { sessionId: stri
           const current = sessionIdRef.current;
           if (!current) return;
           const row = payload.new as { id: string; session_id: string };
-          if (row.session_id !== current) return;     // match de otra sesión: ignorar
+          if (row.session_id !== current) return;
           if (getSeen(current).has(row.id)) return;
           const { items } = await fetchMatches();
           const found = items.find((q) => q.matchId === row.id);

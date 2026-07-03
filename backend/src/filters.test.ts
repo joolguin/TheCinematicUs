@@ -20,17 +20,17 @@ describe('applyFilters', () => {
 
   it('maxRuntime mantiene cortas y las de runtime desconocido, saca largas', () => {
     const r = applyFilters(pool, { maxRuntime: 120, excludeGenres: [] }).map((m) => m.id);
-    expect(r).toEqual(['corta', 'terror', 'sinRuntime', 'sinGenres']); // 'larga' (180) fuera
+    expect(r).toEqual(['corta', 'terror', 'sinRuntime', 'sinGenres']);
   });
 
   it('excludeGenres saca las que tienen un género excluido, mantiene genres null', () => {
     const r = applyFilters(pool, { maxRuntime: null, excludeGenres: ['Horror'] }).map((m) => m.id);
-    expect(r).toEqual(['corta', 'larga', 'sinRuntime', 'sinGenres']); // 'terror' fuera
+    expect(r).toEqual(['corta', 'larga', 'sinRuntime', 'sinGenres']);
   });
 
   it('combina runtime y géneros', () => {
     const r = applyFilters(pool, { maxRuntime: 120, excludeGenres: ['Drama'] }).map((m) => m.id);
-    // fuera: 'larga' (180 y Drama), 'sinRuntime' (Drama). queda corta, terror, sinGenres
+
     expect(r).toEqual(['corta', 'terror', 'sinGenres']);
   });
 

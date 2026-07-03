@@ -32,7 +32,7 @@ export function useSessionListener(
           const row = payload.new as {
             id: string; filters: SessionFilters | null; filters_updated_by: string | null;
           };
-          // Solo el UPDATE de la sesión actual, y solo si lo cambió la OTRA usuaria.
+
           if (row.id !== sessionIdRef.current) return;
           if (!row.filters_updated_by || row.filters_updated_by === user) return;
           onFiltersChangedRef.current?.(row.filters, row.filters_updated_by);

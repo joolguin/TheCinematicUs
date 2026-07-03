@@ -1,4 +1,3 @@
-// frontend/src/components/MatchesList.tsx
 import { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { api, type Movie } from '../api';

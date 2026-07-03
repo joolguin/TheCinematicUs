@@ -1,9 +1,8 @@
-// backend/src/watchlists.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let scrapeResult: any;        // valor que devuelve scrapeWatchlist (o un Error a lanzar)
-const deleteMock = vi.fn();   // ids pasados a .delete().eq().in(ids)
-const insertMock = vi.fn();   // filas pasadas a .insert(rows)
+let scrapeResult: any;
+const deleteMock = vi.fn();
+const insertMock = vi.fn();
 let deleteError: any = null;
 let insertError: any = null;
 let currentItems: { movie_id: string }[] = [];
@@ -58,7 +57,7 @@ describe('refreshWatchlistForUser', () => {
   it('altas y bajas: inserta solo las nuevas, no re-inserta las que siguen, borra las que faltan', async () => {
     currentItems = [{ movie_id: 'id-A' }, { movie_id: 'id-B' }, { movie_id: 'id-C' }, { movie_id: 'id-D' }, { movie_id: 'id-E' }];
     scrapeResult = [{ title: 'A' }, { title: 'B' }, { title: 'C' }, { title: 'D' }, { title: 'New' }];
-    // se va id-E (1 de 5 = 20% ≤ 40%) → procede; nueva = id-New
+
     const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
     expect(r).toEqual({ count: 5, ok: true });
     expect(deleteMock).toHaveBeenCalledWith(['id-E']);
@@ -80,7 +79,7 @@ describe('refreshWatchlistForUser', () => {
 
   it('mantiene el set anterior si el scrape eliminaría >40% del pozo', async () => {
     currentItems = Array.from({ length: 10 }, (_, i) => ({ movie_id: `id-old${i}` }));
-    scrapeResult = [{ title: 'old0' }, { title: 'old1' }]; // se irían 8 (80%)
+    scrapeResult = [{ title: 'old0' }, { title: 'old1' }];
     const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
     expect(r.ok).toBe(false);
     expect(r.kept).toBe(true);
@@ -124,7 +123,7 @@ describe('refreshWatchlistForUser', () => {
 
   it('falla si el delete da error (hay bajas)', async () => {
     currentItems = [{ movie_id: 'id-A' }, { movie_id: 'id-B' }, { movie_id: 'id-C' }, { movie_id: 'id-D' }, { movie_id: 'id-E' }];
-    scrapeResult = [{ title: 'A' }, { title: 'B' }, { title: 'C' }, { title: 'D' }]; // se va id-E (20%)
+    scrapeResult = [{ title: 'A' }, { title: 'B' }, { title: 'C' }, { title: 'D' }];
     deleteError = { message: 'db connection lost' };
     const r = await refreshWatchlistForUser('u1', 'https://letterboxd.com/jo/watchlist/');
     expect(r).toEqual({ count: 0, ok: false, error: 'db connection lost' });
