@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { config } from './config.js';
 import { requirePassphrase } from './middleware/auth.js';
 import { supabase } from './db.js';
@@ -9,12 +10,13 @@ import { getUserByName } from './users.js';
 import { claimRefresh, runRefreshJob } from './refreshJob.js';
 import { collectGenres, type SessionFilters } from './filters.js';
 import { recordMovieState, getMovieStates, orderByNovelty } from './userMovieState.js';
-import { TABLES } from './constants.js';
+import { TABLES, DECK_MOVIE_COLUMNS } from './constants.js';
 
 const HTTP_ACCEPTED = 202;
 const HTTP_INTERNAL_ERROR = 500;
 
 const app = express();
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 app.use(requirePassphrase);
@@ -45,12 +47,15 @@ app.post('/watchlists/refresh', asyncRoute(async (_req, res) => {
   runRefreshJob().catch((error) => console.error('[refresh job]', error));
 }));
 
-app.get('/deck', asyncRoute(async (req, res) => {
-  const { id: userId } = await getUserByName(String(req.query.user));
-  const { id: sessionId, filters } = await getActiveSession();
+type DeckMovie = { id: string; genres: string[] | null } & Record<string, unknown>;
 
-  const { data: items } = await supabase
-    .from(TABLES.watchlistItems).select('movie_id, first_seen_at');
+app.get('/deck', asyncRoute(async (req, res) => {
+  const [{ id: userId }, { id: sessionId, filters }, { data: items }] = await Promise.all([
+    getUserByName(String(req.query.user)),
+    getActiveSession(),
+    supabase.from(TABLES.watchlistItems).select('movie_id, first_seen_at'),
+  ]);
+
   const firstSeen = new Map<string, string>();
   for (const item of (items ?? []) as { movie_id: string; first_seen_at: string }[]) {
     const current = firstSeen.get(item.movie_id);
@@ -63,9 +68,11 @@ app.get('/deck', asyncRoute(async (req, res) => {
   const swipedIds = new Set((swiped ?? []).map((swipe) => swipe.movie_id));
 
   const pending = movieIds.filter((id) => !swipedIds.has(id));
-  const { data: movies } = await supabase.from(TABLES.movies).select('*').in('id', pending);
-  const pool = movies ?? [];
-  const states = await getMovieStates(userId, pool.map((movie) => movie.id));
+  const [{ data: movies }, states] = await Promise.all([
+    supabase.from(TABLES.movies).select(DECK_MOVIE_COLUMNS).in('id', pending),
+    getMovieStates(userId, pending),
+  ]);
+  const pool = (movies ?? []) as DeckMovie[];
   res.json({ deck: orderByNovelty(pool, states, firstSeen), genres: collectGenres(pool), filters });
 }));
 

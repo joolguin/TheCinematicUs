@@ -1,10 +1,9 @@
 import { API_URL } from './config';
+import { STORAGE_KEYS } from './constants';
 
 export interface Movie {
   id: string;
-  tmdb_id: number | null;
   title: string;
-  original_title: string | null;
   year: number | null;
   poster_url: string | null;
   director: string | null;
@@ -14,7 +13,6 @@ export interface Movie {
   overview: string | null;
   tmdb_rating: number | null;
   country: string | null;
-  enriched: boolean;
 }
 
 export interface SessionFilters {
@@ -31,7 +29,7 @@ export interface DeckResponse {
 function headers() {
   return {
     'Content-Type': 'application/json',
-    'x-passphrase': localStorage.getItem('passphrase') ?? '',
+    'x-passphrase': localStorage.getItem(STORAGE_KEYS.passphrase) ?? '',
   };
 }
 

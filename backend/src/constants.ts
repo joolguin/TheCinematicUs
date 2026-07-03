@@ -21,6 +21,9 @@ export const SESSION_MODE = {
   pool: 'pool',
 } as const;
 
+export const DECK_MOVIE_COLUMNS =
+  'id, title, year, poster_url, director, cast, runtime, genres, overview, tmdb_rating, country';
+
 export const RPC = {
   recordSwipeAndDetectMatch: 'record_swipe_and_detect_match',
 } as const;
