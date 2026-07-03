@@ -7,6 +7,13 @@ const STALE_MS = 10 * 60 * 1000;
 
 export async function claimRefresh(now: Date = new Date()): Promise<boolean> {
   const staleCutoff = new Date(now.getTime() - STALE_MS).toISOString();
+  
+  await supabase
+    .from(TABLES.refreshStatus)
+    .upsert(
+      { id: REFRESH_STATUS_ROW_ID, status: REFRESH_JOB_STATUS.idle },
+      { onConflict: 'id', ignoreDuplicates: true },
+    );
   const { data } = await supabase
     .from(TABLES.refreshStatus)
     .update({

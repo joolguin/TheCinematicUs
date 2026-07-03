@@ -10,6 +10,7 @@ export const TABLES = {
 } as const;
 
 export const REFRESH_JOB_STATUS = {
+  idle: 'idle',
   running: 'running',
   done: 'done',
   error: 'error',
