@@ -5,6 +5,7 @@ import { api, type Movie, type SessionFilters, type DeckResponse } from '../api'
 import type { UserName, PresenceStatus } from '../types';
 import { AVATAR, RING } from '../assets/avatars';
 import { useSessionListener } from '../hooks';
+import { applyFilters } from '../filters';
 import { PresenceBadge } from '../components/PresenceBadge';
 import { MovieCard } from '../components/MovieCard';
 import { MatchOverlay } from '../components/MatchOverlay';
@@ -78,16 +79,14 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
     window.clearTimeout(postTimer.current);
     postTimer.current = window.setTimeout(async () => {
       await api.post('/session/filters', { user, filters: next });
-      await loadDeck();
     }, 400);
   }
 
   const onFiltersChanged = useCallback((f: SessionFilters | null, by: string) => {
     setFilters(f);
-    loadDeck();
     setAviso(`${by} cambió el filtro`);
     setTimeout(() => setAviso(null), 4000);
-  }, [loadDeck]);
+  }, []);
 
   useSessionListener(user, sessionId, (newSessionId, startedBy) => {
     softReset(newSessionId, startedBy);
@@ -106,8 +105,9 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
     }
   }
 
-  const top = deck[0];
-  const myStatus: PresenceStatus = !deckLoaded ? 'en-linea' : deck.length > 0 ? 'swipeando' : 'termino';
+  const visibleDeck = applyFilters(deck, filters);
+  const top = visibleDeck[0];
+  const myStatus: PresenceStatus = !deckLoaded ? 'en-linea' : visibleDeck.length > 0 ? 'swipeando' : 'termino';
   const activeFilter = !!filters && (filters.maxRuntime != null || filters.excludeGenres.length > 0);
 
   if (chosen) {
@@ -141,7 +141,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   async function swipe(liked: boolean) {
     if (!top) return;
     const movie = top;
-    setDeck((d) => d.slice(1));
+    setDeck((d) => d.filter((m) => m.id !== movie.id));
 
     setLastSwiped(liked ? null : movie);
     setExpanded(false);
@@ -198,7 +198,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
       <div className="flex justify-between items-center px-4 pt-0.5 pb-1.5 shrink-0">
         <PresenceBadge me={user} myStatus={myStatus} />
         {deckLoaded && !resetting && (
-          <span className="text-[14px] text-[#3a3a50]">{Math.max(0, deck.length)} por ver</span>
+          <span className="text-[14px] text-[#3a3a50]">{visibleDeck.length} por ver</span>
         )}
       </div>
 

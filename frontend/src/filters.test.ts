@@ -1,0 +1,44 @@
+import { describe, it, expect } from 'vitest';
+import { applyFilters } from './filters';
+import type { SessionFilters } from './api';
+
+const M = (over: Partial<{ id: string; runtime: number | null; genres: string[] | null }>) => ({
+  id: 'x', runtime: null as number | null, genres: null as string[] | null, ...over,
+});
+
+describe('applyFilters', () => {
+  const pool = [
+    M({ id: 'corta', runtime: 80, genres: ['Comedy'] }),
+    M({ id: 'larga', runtime: 180, genres: ['Drama'] }),
+    M({ id: 'terror', runtime: 95, genres: ['Horror', 'Thriller'] }),
+    M({ id: 'sinRuntime', runtime: null, genres: ['Drama'] }),
+    M({ id: 'sinGenres', runtime: 100, genres: null }),
+  ];
+
+  it('sin filtro (null) es passthrough', () => {
+    expect(applyFilters(pool, null)).toEqual(pool);
+  });
+
+  it('maxRuntime mantiene cortas y las de runtime desconocido, saca largas', () => {
+    const r = applyFilters(pool, { maxRuntime: 120, excludeGenres: [] }).map((m) => m.id);
+    expect(r).toEqual(['corta', 'terror', 'sinRuntime', 'sinGenres']);
+  });
+
+  it('excludeGenres saca las que tienen un género excluido, mantiene genres null', () => {
+    const r = applyFilters(pool, { maxRuntime: null, excludeGenres: ['Horror'] }).map((m) => m.id);
+    expect(r).toEqual(['corta', 'larga', 'sinRuntime', 'sinGenres']);
+  });
+
+  it('combina runtime y géneros', () => {
+    const r = applyFilters(pool, { maxRuntime: 120, excludeGenres: ['Drama'] }).map((m) => m.id);
+    expect(r).toEqual(['corta', 'terror', 'sinGenres']);
+  });
+
+  it('maxRuntime null + excludeGenres vacío es passthrough', () => {
+    expect(applyFilters(pool, { maxRuntime: null, excludeGenres: [] })).toEqual(pool);
+  });
+
+  it('tolera campos faltantes en filters (tratados como sin efecto)', () => {
+    expect(applyFilters(pool, {} as SessionFilters)).toEqual(pool);
+  });
+});

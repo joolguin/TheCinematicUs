@@ -7,7 +7,7 @@ import { getActiveSession, createSession, invalidateActiveSessionCache } from '.
 import { recordSwipeAndDetectMatch, reconcileMatches, undoSwipe } from './match.js';
 import { getUserByName } from './users.js';
 import { claimRefresh, runRefreshJob } from './refreshJob.js';
-import { applyFilters, collectGenres, type SessionFilters } from './filters.js';
+import { collectGenres, type SessionFilters } from './filters.js';
 import { recordMovieState, getMovieStates, orderByNovelty } from './userMovieState.js';
 import { TABLES } from './constants.js';
 
@@ -65,9 +65,8 @@ app.get('/deck', asyncRoute(async (req, res) => {
   const pending = movieIds.filter((id) => !swipedIds.has(id));
   const { data: movies } = await supabase.from(TABLES.movies).select('*').in('id', pending);
   const pool = movies ?? [];
-  const filtered = applyFilters(pool, filters);
-  const states = await getMovieStates(userId, filtered.map((movie) => movie.id));
-  res.json({ deck: orderByNovelty(filtered, states, firstSeen), genres: collectGenres(pool), filters });
+  const states = await getMovieStates(userId, pool.map((movie) => movie.id));
+  res.json({ deck: orderByNovelty(pool, states, firstSeen), genres: collectGenres(pool), filters });
 }));
 
 app.post('/session/filters', asyncRoute(async (req, res) => {
