@@ -3,7 +3,7 @@ import cors from 'cors';
 import { config } from './config.js';
 import { requirePassphrase } from './middleware/auth.js';
 import { supabase } from './db.js';
-import { getActiveSession, createSession } from './sessions.js';
+import { getActiveSession, createSession, invalidateActiveSessionCache } from './sessions.js';
 import { recordSwipeAndDetectMatch, reconcileMatches, undoSwipe } from './match.js';
 import { getUserByName } from './users.js';
 import { claimRefresh, runRefreshJob } from './refreshJob.js';
@@ -78,6 +78,7 @@ app.post('/session/filters', asyncRoute(async (req, res) => {
     .update({ filters, filters_updated_by: user })
     .eq('id', sessionId);
   if (error) throw error;
+  invalidateActiveSessionCache();
   res.json({ ok: true });
 }));
 
@@ -86,13 +87,13 @@ app.post('/swipe', asyncRoute(async (req, res) => {
   const { id: userId } = await getUserByName(user);
   const { id: sessionId } = await getActiveSession();
   const result = await recordSwipeAndDetectMatch(sessionId, userId, movieId, liked);
-  try {
-    await recordMovieState(userId, movieId, liked);
-  } catch (error) {
-    console.error('[recordMovieState]', error);
-  }
-  if (liked) await reconcileMatches(sessionId);
   res.json(result);
+  recordMovieState(userId, movieId, liked)
+    .catch((error) => console.error('[recordMovieState]', error));
+  if (liked) {
+    reconcileMatches(sessionId)
+      .catch((error) => console.error('[reconcileMatches]', error));
+  }
 }));
 
 app.post('/swipe/undo', asyncRoute(async (req, res) => {

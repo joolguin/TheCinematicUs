@@ -1,7 +1,16 @@
 import { supabase } from './db.js';
 import { TABLES } from './constants.js';
 
+const userIdCache = new Map<string, { id: string }>();
+
+export function clearUserCache(): void {
+  userIdCache.clear();
+}
+
 export async function getUserByName(name: string): Promise<{ id: string }> {
+  const cached = userIdCache.get(name);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from(TABLES.users).select('id').eq('name', name).single();
   if (error) {
@@ -9,7 +18,10 @@ export async function getUserByName(name: string): Promise<{ id: string }> {
     throw new Error(`Error consultando usuaria "${name}": ${error.message}`);
   }
   if (!data) throw new Error(`Usuaria desconocida: ${name}`);
-  return { id: data.id };
+
+  const user = { id: data.id };
+  userIdCache.set(name, user);
+  return user;
 }
 
 export interface User {

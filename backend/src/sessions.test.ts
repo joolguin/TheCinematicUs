@@ -23,9 +23,10 @@ vi.mock('./db.js', () => ({
   },
 }));
 
-import { getActiveSession, createSession } from './sessions.js';
+import { getActiveSession, createSession, invalidateActiveSessionCache } from './sessions.js';
 
 beforeEach(() => {
+  invalidateActiveSessionCache();
   activeRow = null;
   activeReads = null;
   insertResult = { data: { id: 'nueva' }, error: null };
