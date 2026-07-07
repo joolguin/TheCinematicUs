@@ -52,14 +52,14 @@ function Menu({ count, onClose, onRuleta, onRonda }: { count: number; onClose: (
         <p className="text-[16px] text-reel-dim mb-2.5 text-center">Elige cómo decidir entre los {count} matches</p>
         <button onClick={onRuleta} className="w-full bg-charcoal border border-whisper rounded-[22px] px-5 py-6 flex flex-col items-center gap-3">
           <span className="w-14 h-14 rounded-full bg-ink border border-whisper flex items-center justify-center shrink-0">
-            <Disc3 size={34} color="#E0703C" />
+            <Disc3 size={34} color="#D64A3F" />
           </span>
           <span className="font-display text-[19px] text-screen font-bold">Ruleta</span>
           <span className="text-[15px] text-reel-dim text-center">El azar elige — todos compiten</span>
         </button>
         <button onClick={onRonda} className="w-full bg-charcoal border border-whisper rounded-[22px] px-5 py-6 flex flex-col items-center gap-3">
           <span className="w-14 h-14 rounded-full bg-ink border border-whisper flex items-center justify-center shrink-0">
-            <Swords size={32} color="#E0703C" />
+            <Swords size={32} color="#D64A3F" />
           </span>
           <span className="font-display text-[19px] text-screen font-bold">Ronda</span>
           <span className="text-[15px] text-reel-dim text-center">Enfrentamiento directo</span>
@@ -131,7 +131,7 @@ function Ruleta({ matches, onPick, onBack }: { matches: Movie[]; onPick: (m: Mov
                   key={m.id}
                   className="rounded-[12px] overflow-hidden transition-all duration-100 min-h-0"
                   style={{
-                    border: `2.5px solid ${hi ? '#E0703C' : 'rgba(244,244,245,0.08)'}`,
+                    border: `2.5px solid ${hi ? '#D64A3F' : 'rgba(244,244,245,0.08)'}`,
                     boxShadow: 'none',
                     transform: hi ? 'scale(1.04)' : 'scale(1)',
                   }}

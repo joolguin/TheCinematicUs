@@ -64,9 +64,9 @@ export function FilterBar({
                   onClick={() => toggleGenre(g)}
                   className="rounded-[20px] px-3.5 py-[7px] text-[16px] transition-all"
                   style={{
-                    background: ex ? 'rgba(31,31,35,.5)' : 'rgba(224,112,60,0.14)',
-                    border: `1px solid ${ex ? 'rgba(244,244,245,0.08)' : '#E0703C'}`,
-                    color: ex ? '#5C5C63' : '#E0703C',
+                    background: ex ? 'rgba(31,31,35,.5)' : 'rgba(214,74,63,0.14)',
+                    border: `1px solid ${ex ? 'rgba(244,244,245,0.08)' : '#D64A3F'}`,
+                    color: ex ? '#5C5C63' : '#D64A3F',
                   }}
                 >
                   {g}

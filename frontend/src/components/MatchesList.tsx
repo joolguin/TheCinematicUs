@@ -14,7 +14,7 @@ export function MatchesList({ onClose, onChoose }: { onClose: () => void; onChoo
         <div className="h-[60px] shrink-0" />
         <div className="flex justify-between items-center px-[18px] pt-2.5 pb-2 shrink-0 border-b border-whisper">
           <h2 className="font-display text-[20px] text-screen font-bold flex items-center gap-1.5">
-            Matches <Heart size={20} color="#E0703C" fill="#E0703C" />
+            Matches <Heart size={20} color="#D64A3F" fill="#D64A3F" />
           </h2>
           <button onClick={onClose} className="text-reel-dim text-[16px] px-2 py-1">Cerrar</button>
         </div>

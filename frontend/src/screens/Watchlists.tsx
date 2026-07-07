@@ -19,7 +19,7 @@ type RefreshStatus = {
 };
 
 function dotColor(name: string): string {
-  return RING[name as UserName] ?? '#E0703C';
+  return RING[name as UserName] ?? '#D64A3F';
 }
 
 function formatUpdated(iso: string | null | undefined): string | null {

@@ -182,8 +182,8 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
             aria-label="Filtros"
             className="rounded-[20px] px-2.5 py-[6px] text-[15px] flex items-center gap-1 bg-charcoal"
             style={{
-              color: activeFilter ? '#E0703C' : '#5C5C63',
-              border: `1px solid ${activeFilter ? '#E0703C' : 'rgba(244,244,245,0.08)'}`,
+              color: activeFilter ? '#D64A3F' : '#5C5C63',
+              border: `1px solid ${activeFilter ? '#D64A3F' : 'rgba(244,244,245,0.08)'}`,
             }}
           >
             <SlidersHorizontal size={17} />
@@ -193,7 +193,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
             <RotateCcw size={17} />
           </button>
           <button onClick={() => setShowMatches(true)} className="bg-charcoal border border-whisper rounded-[20px] px-2.5 py-[5px] text-[15px] text-ember flex items-center gap-1 font-medium">
-            <Heart size={15} color="#E0703C" fill="#E0703C" /><span className="font-mono">{matchCount}</span>
+            <Heart size={15} color="#D64A3F" fill="#D64A3F" /><span className="font-mono">{matchCount}</span>
           </button>
         </div>
       </div>
@@ -214,7 +214,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
               border: '1px solid rgba(244,244,245,0.08)',
             }}
           >
-            <span className="text-[15px]" style={{ color: resetOk ? '#E0703C' : '#8A8A93' }}>{resetMsg}</span>
+            <span className="text-[15px]" style={{ color: resetOk ? '#D64A3F' : '#8A8A93' }}>{resetMsg}</span>
           </div>
         </div>
       )}
