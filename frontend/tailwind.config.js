@@ -30,7 +30,6 @@ export default {
         popIn: 'popIn .5s ease both',
         heartbeat: 'heartbeat 2.6s ease-in-out infinite',
         dotPulse: 'dotPulse 2s ease-in-out infinite',
-        glowPulse: 'glowPulse 3s ease infinite',
         spin: 'spin .8s linear infinite',
         fadeIn: 'fadeIn .3s ease',
         bloom: 'bloom .8s ease both',
