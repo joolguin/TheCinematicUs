@@ -2,37 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+  --theater: #0B0B0D;
+  --charcoal: #161619;
+  --ink: #1F1F23;
+  --screen: #F4F4F5;
+  --reel: #8A8A93;
+  --ember: #D64A3F;
+  --ember-bloom: rgba(214,74,63,0.45);
+}
 
-/* Keyframes definidos en CSS para que existan siempre — se referencian tanto
-   desde utilidades animate-* como desde animations arbitrarias e inline (confetti). */
+/* Keyframes definidos en CSS para que existan siempre. */
 @keyframes fadeUp    { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideUp   { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes popIn     { 0% { opacity: 0; transform: scale(0.84); } 65% { transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
 @keyframes dotPulse  { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
-@keyframes glowPulse { 0%, 100% { box-shadow: 0 16px 48px rgba(124,58,237,.45); } 50% { box-shadow: 0 20px 72px rgba(124,58,237,.75), 0 0 0 5px rgba(124,58,237,.12); } }
-@keyframes confFall  { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(260px) rotate(540deg); } }
 @keyframes spin      { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes fadeIn    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bloom     { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
 
 body {
   margin: 0;
-  background: #09090e;
-  color: #f8f8fa;
-  font-family: 'Hanken Grotesk', sans-serif;
+  background: var(--theater);
+  color: var(--screen);
+  font-family: 'Geist', sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Slider de duración (panel de filtros) — pulgar violeta como en el prototipo. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 4px;
   border-radius: 2px;
-  background: #2d2d3e;
+  background: var(--ink);
   outline: none;
 }
 input[type='range']::-webkit-slider-thumb {
@@ -41,16 +47,14 @@ input[type='range']::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #7c3aed;
+  background: var(--ember);
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
 }
 input[type='range']::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border: none;
   border-radius: 50%;
-  background: #7c3aed;
+  background: var(--ember);
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
 }

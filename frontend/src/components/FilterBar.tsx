@@ -31,17 +31,17 @@ export function FilterBar({
 
   return (
     <>
-      <div onClick={onClose} className="absolute inset-0 bg-[rgba(9,9,14,.7)] z-[65]" />
-      <div className="absolute bottom-0 inset-x-0 bg-[#111118] rounded-t-[22px] border-t border-[#1e1e2a] px-[18px] pt-[18px] pb-7 z-[70] animate-slideUp">
+      <div onClick={onClose} className="absolute inset-0 bg-[rgba(11,11,13,.7)] z-[65]" />
+      <div className="absolute bottom-0 inset-x-0 bg-charcoal rounded-t-[22px] border-t border-whisper px-[18px] pt-[18px] pb-7 z-[70] animate-slideUp">
         <div className="flex justify-between items-center mb-[18px]">
-          <h3 className="font-display text-[17px] text-[#f8f8fa] font-bold">Filtros</h3>
-          <button onClick={onClose} className="text-[#4a4a62] text-[16px] px-1.5 py-1">Cerrar</button>
+          <h3 className="font-display text-[17px] text-screen font-bold">Filtros</h3>
+          <button onClick={onClose} className="text-reel-dim text-[16px] px-1.5 py-1">Cerrar</button>
         </div>
 
         <div className="mb-5">
           <div className="flex justify-between items-center mb-[11px]">
-            <span className="text-[16px] text-[#8888a0] font-medium">Duración máxima</span>
-            <span className="text-[16px] text-[#a78bfa] font-semibold">{label}</span>
+            <span className="text-[16px] text-reel font-medium">Duración máxima</span>
+            <span className="text-[16px] text-ember font-mono font-semibold">{label}</span>
           </div>
           <input
             type="range"
@@ -54,7 +54,7 @@ export function FilterBar({
         </div>
 
         <div>
-          <p className="text-[16px] text-[#8888a0] font-medium mb-2.5">Géneros a excluir</p>
+          <p className="text-[16px] text-reel font-medium mb-2.5">Géneros a excluir</p>
           <div className="flex flex-wrap gap-[7px]">
             {genres.map((g) => {
               const ex = current.excludeGenres.includes(g);
@@ -64,9 +64,9 @@ export function FilterBar({
                   onClick={() => toggleGenre(g)}
                   className="rounded-[20px] px-3.5 py-[7px] text-[16px] transition-all"
                   style={{
-                    background: ex ? 'rgba(30,30,42,.5)' : 'rgba(124,58,237,.15)',
-                    border: `1px solid ${ex ? '#26263a' : 'rgba(124,58,237,.38)'}`,
-                    color: ex ? '#3a3a50' : '#c4b5fd',
+                    background: ex ? 'rgba(31,31,35,.5)' : 'rgba(214,74,63,0.14)',
+                    border: `1px solid ${ex ? 'rgba(244,244,245,0.08)' : '#D64A3F'}`,
+                    color: ex ? '#5C5C63' : '#D64A3F',
                   }}
                 >
                   {g}
@@ -74,7 +74,7 @@ export function FilterBar({
               );
             })}
             {genres.length === 0 && (
-              <span className="text-[#3a3a50] text-[16px]">Sin géneros en el mazo</span>
+              <span className="text-reel-dim text-[16px]">Sin géneros en el mazo</span>
             )}
           </div>
         </div>

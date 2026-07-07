@@ -49,9 +49,9 @@ export function PresenceBadge({ me, myStatus }: { me: UserName; myStatus: Presen
   return (
     <div className="flex items-center gap-1.5">
       <span
-        className={`h-1.5 w-1.5 rounded-full ${otherStatus ? 'bg-[#4ade80] animate-dotPulse' : 'bg-[#3a3a50]'}`}
+        className={`h-1.5 w-1.5 rounded-full ${otherStatus ? 'bg-ember animate-dotPulse' : 'bg-reel-dim'}`}
       />
-      <span className="text-[14px] text-[#3a3a50]">{other}: {texto}</span>
+      <span className="text-[14px] text-reel">{other}: {texto}</span>
     </div>
   );
 }
