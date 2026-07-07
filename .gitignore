@@ -1,4 +1,6 @@
 CLAUDE.local.md
+DESIGN.md
+docs/
 node_modules/
 dist/
 .env
