@@ -6,7 +6,7 @@ export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
   const users = USER_NAMES;
   return (
     <div className="min-h-screen max-w-[430px] mx-auto flex flex-col items-center justify-center px-5 pb-12 animate-fadeUp">
-      <p className="text-[13px] text-[#3a3a50] tracking-[0.15em] uppercase font-medium mb-2.5">
+      <p className="text-[13px] text-reel-dim tracking-[0.15em] uppercase font-medium mb-2.5">
         TheCinematicUs
       </p>
       <div className="flex gap-3.5 w-full">
@@ -14,10 +14,10 @@ export function UserSelect({ onPick }: { onPick: (u: UserName) => void }) {
           <button
             key={u}
             onClick={() => onPick(u)}
-            className="flex-1 bg-[#111118] border-[1.5px] border-[#26263a] rounded-[24px] pt-[30px] pb-6 px-3 flex flex-col items-center gap-2.5"
+            className="flex-1 bg-charcoal border border-whisper rounded-[24px] pt-[30px] pb-6 px-3 flex flex-col items-center gap-2.5"
           >
             <img src={AVATAR[u]} className="w-[58px] h-[58px] rounded-full object-cover" />
-            <span className="font-display text-[22px] text-[#f8f8fa] font-bold">{u}</span>
+            <span className="font-display text-[22px] text-screen font-bold">{u}</span>
           </button>
         ))}
       </div>
