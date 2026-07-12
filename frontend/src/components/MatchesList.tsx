@@ -25,7 +25,7 @@ export function MatchesList({ onClose, onChoose }: { onClose: () => void; onChoo
               onClick={() => setDeciding(true)}
               className="w-full bg-ember text-theater rounded-[14px] py-[13px] text-[17px] font-semibold"
             >
-              ¿Cuál vemos?
+              Okay indesisas...
             </button>
           </div>
         )}
@@ -35,7 +35,7 @@ export function MatchesList({ onClose, onChoose }: { onClose: () => void; onChoo
             <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
               <div className="w-16 h-24 rounded-[10px] border border-whisper bg-charcoal" />
               <p className="text-reel text-[17px] leading-[1.65]">
-                Todavía no hay matches.<br />¡Seguí swipeando!
+                Todavía no hay matches ᴖ̈
               </p>
             </div>
           )}
