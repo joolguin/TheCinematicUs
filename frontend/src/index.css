@@ -9,8 +9,8 @@
   --ink: #1F1F23;
   --screen: #F4F4F5;
   --reel: #8A8A93;
-  --ember: #D64A3F;
-  --ember-bloom: rgba(214,74,63,0.45);
+  --ember: #FF2834;
+  --ember-bloom: rgba(255,40,52,0.45);
 }
 
 /* Keyframes definidos en CSS para que existan siempre. */
