@@ -28,6 +28,7 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   const [showFiltros, setShowFiltros] = useState(false);
   const [chosen, setChosen] = useState<Movie | null>(null);
   const [deckLoaded, setDeckLoaded] = useState(false);
+  const [deckError, setDeckError] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [filters, setFilters] = useState<SessionFilters | null>(null);
@@ -45,9 +46,16 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
   const likeOpacity = useTransform(x, [0, 60], [0, 1]);
   const passOpacity = useTransform(x, [-60, 0], [1, 0]);
 
-  const loadDeck = useCallback(async () => {
-    const r: DeckResponse = await api.get(`/deck?user=${user}`);
-    setDeck(r.deck); setGenres(r.genres); setFilters(r.filters); setDeckLoaded(true);
+  const loadDeck = useCallback(async (): Promise<boolean> => {
+    setDeckError(false);
+    try {
+      const r: DeckResponse = await api.get(`/deck?user=${user}`);
+      setDeck(r.deck); setGenres(r.genres); setFilters(r.filters); setDeckLoaded(true);
+      return true;
+    } catch {
+      setDeckError(true);
+      return false;
+    }
   }, [user]);
 
   useEffect(() => { loadDeck(); }, [loadDeck]);
@@ -70,8 +78,9 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
     setResetMsg(quien);
     setResetting(true);
     setDeckLoaded(false);
-    await loadDeck();
+    const ok = await loadDeck();
     setResetting(false);
+    if (!ok) return;
     setResetOk(true);
     setResetMsg('Mazo nuevo listo');
     setTimeout(() => setResetMsg(null), 2000);
@@ -224,6 +233,19 @@ export function Swipe({ user, onWatchlists }: { user: UserName; onWatchlists: ()
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <div className="w-4 h-4 border-2 border-ember border-t-transparent rounded-full animate-spin" />
             <div className="text-reel-dim text-[16px]">Reiniciando mazo…</div>
+          </div>
+        ) : !deckLoaded && !deckError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="w-4 h-4 border-2 border-ember border-t-transparent rounded-full animate-spin" />
+            <div className="text-reel-dim text-[16px]">Cargando películas…</div>
+          </div>
+        ) : deckError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-8">
+            <h3 className="font-display text-[21px] text-screen font-bold">No se pudo cargar</h3>
+            <p className="text-reel-dim text-[16px] leading-[1.65]">Revisá tu conexión e intentá de nuevo.</p>
+            <button onClick={loadDeck} className="bg-charcoal border border-whisper text-ember rounded-[12px] px-[22px] py-[11px] text-[17px] mt-1.5 flex items-center gap-1.5">
+              Reintentar <RotateCcw size={18} />
+            </button>
           </div>
         ) : top ? (
           <>
