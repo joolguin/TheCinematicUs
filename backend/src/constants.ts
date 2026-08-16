@@ -7,6 +7,7 @@ export const TABLES = {
   watchlistItems: 'watchlist_items',
   userMovieState: 'user_movie_state',
   refreshStatus: 'refresh_status',
+  letterboxdFilms: 'letterboxd_films',
 } as const;
 
 export const REFRESH_JOB_STATUS = {
