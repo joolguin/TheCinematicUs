@@ -69,7 +69,9 @@ app.get('/deck', asyncRoute(async (req, res) => {
 
   const pending = movieIds.filter((id) => !swipedIds.has(id));
   const [{ data: movies }, states] = await Promise.all([
-    supabase.from(TABLES.movies).select(DECK_MOVIE_COLUMNS).in('id', pending),
+    // enriched=true: las que no resolvieron a TMDB no se muestran (además de
+    // no guardarse; el filtro cubre las filas viejas anteriores a esa regla).
+    supabase.from(TABLES.movies).select(DECK_MOVIE_COLUMNS).in('id', pending).eq('enriched', true),
     getMovieStates(userId, pending),
   ]);
   const pool = (movies ?? []) as DeckMovie[];

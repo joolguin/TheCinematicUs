@@ -346,3 +346,36 @@ revoke execute on function record_swipe_and_detect_match(uuid, uuid, uuid, boole
   from public, anon, authenticated;
 grant execute on function record_swipe_and_detect_match(uuid, uuid, uuid, boolean)
   to service_role;
+
+-- ─────────────────────────────────────────────────────────────
+-- Migración M9 slug → tmdb_id (2026-08-16): resolución de películas por
+-- el TMDB ID que Letterboxd publica en la propia página del film
+-- (<body data-tmdb-id="..." data-tmdb-type="movie|tv">), en vez de
+-- buscar en TMDB por título+año. La búsqueda por título fallaba con
+-- remakes y homónimos; el ID viene de Letterboxd, así que el matching
+-- deja de ser heurístico.
+--
+-- letterboxd_films es el CACHE de esa resolución: una fila por slug,
+-- persistente entre corridas. Es lo que evita re-pedir la página de
+-- cada peli en cada refresh (~200 requests → solo las nuevas).
+-- Tabla aparte de movies (y no una columna) porque dos slugs distintos
+-- pueden apuntar al mismo tmdb_id, y porque el cache sobrevive aunque
+-- la resolución a TMDB falle (movie_id null = pendiente de reintento).
+--
+-- movies.search_key queda como columna legacy: ya no se escribe ni se
+-- lee. No se dropea para no romper un rollback.
+-- ─────────────────────────────────────────────────────────────
+alter table movies add column if not exists tmdb_type text;
+
+create table if not exists letterboxd_films (
+  slug text primary key,
+  tmdb_id integer,
+  tmdb_type text,
+  movie_id uuid references movies(id) on delete set null,
+  resolved_at timestamptz,
+  last_attempt_at timestamptz not null default now()
+);
+create index if not exists letterboxd_films_movie_id_idx on letterboxd_films (movie_id);
+alter table letterboxd_films enable row level security;
+drop policy if exists "anon no lee letterboxd_films" on letterboxd_films;
+create policy "anon no lee letterboxd_films" on letterboxd_films for select to anon using (false);

@@ -1,7 +1,9 @@
 import { config } from './config.js';
+import type { TmdbRef } from './letterboxd.js';
 
 export interface MovieData {
   tmdbId: number | null;
+  tmdbType: string | null;
   title: string;
   originalTitle: string | null;
   year: number | null;
@@ -37,38 +39,52 @@ async function tmdbGet(path: string, params: Record<string, string>) {
   return response.json();
 }
 
-export async function searchAndEnrich(title: string, year: number | null): Promise<MovieData> {
-  const minimal: MovieData = {
-    tmdbId: null, title, originalTitle: null, year, posterUrl: null,
-    director: null, cast: null, runtime: null, genres: null,
-    overview: null, tmdbRating: null, country: null, enriched: false,
-  };
+/**
+ * Trae los detalles por ID directo. El ID lo publica Letterboxd en la página
+ * del film, así que no hay búsqueda por título de por medio: la peli que
+ * devuelve TMDB es exactamente la que Letterboxd tiene linkeada.
+ * `tv` normaliza los campos que TMDB nombra distinto (name/first_air_date/...).
+ *
+ * Devuelve `null` si TMDB no responde con datos. Pasa sobre todo cuando el ID
+ * que publica Letterboxd está muerto (404): entradas borradas o mergeadas del
+ * lado de TMDB, con el ID cacheado de Letterboxd quedando viejo.
+ */
+export async function fetchById(
+  ref: TmdbRef,
+  fallbackTitle: string,
+  fallbackYear: number | null,
+): Promise<MovieData | null> {
   try {
-    const params: Record<string, string> = { query: title };
-    if (year) params.year = String(year);
-    const search = await tmdbGet('/search/movie', params);
-    const hit = search.results?.[0];
-    if (!hit) return minimal;
+    const isTv = ref.tmdbType === 'tv';
+    const details = await tmdbGet(`/${ref.tmdbType}/${ref.tmdbId}`, { append_to_response: 'credits' });
 
-    const details = await tmdbGet(`/movie/${hit.id}`, { append_to_response: 'credits' });
-    const director = details.credits?.crew?.find((member: any) => member.job === DIRECTOR_JOB)?.name ?? null;
+    const director = isTv
+      ? (details.created_by?.[0]?.name ?? null)
+      : (details.credits?.crew?.find((member: any) => member.job === DIRECTOR_JOB)?.name ?? null);
     const cast = (details.credits?.cast ?? []).slice(0, MAX_CAST_MEMBERS).map((member: any) => member.name);
+    const releaseDate = isTv ? details.first_air_date : details.release_date;
+    const runtime = isTv ? (details.episode_run_time?.[0] ?? null) : (details.runtime ?? null);
+    const country = isTv
+      ? (details.origin_country?.[0] ?? null)
+      : (details.production_countries?.[0]?.iso_3166_1 ?? null);
+
     return {
       tmdbId: details.id,
-      title: details.title,
-      originalTitle: details.original_title ?? null,
-      year: details.release_date ? Number(details.release_date.slice(0, 4)) : year,
+      tmdbType: ref.tmdbType,
+      title: (isTv ? details.name : details.title) || fallbackTitle,
+      originalTitle: (isTv ? details.original_name : details.original_title) ?? null,
+      year: releaseDate ? Number(releaseDate.slice(0, 4)) : fallbackYear,
       posterUrl: details.poster_path ? TMDB_IMAGE_URL + details.poster_path : null,
       director,
       cast: cast.length ? cast : null,
-      runtime: details.runtime ?? null,
+      runtime,
       genres: (details.genres ?? []).map((genre: any) => genre.name),
       overview: details.overview || null,
       tmdbRating: details.vote_average ?? null,
-      country: details.production_countries?.[0]?.iso_3166_1 ?? null,
+      country,
       enriched: true,
     };
   } catch {
-    return minimal;
+    return null;
   }
 }

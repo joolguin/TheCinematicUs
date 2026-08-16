@@ -11,6 +11,8 @@ export interface RefreshResult {
   ok: boolean;
   error?: string;
   kept?: boolean;
+  /** Films de la watchlist que no resolvieron a TMDB y quedaron fuera del pozo. */
+  unresolved?: number;
 }
 
 export async function refreshWatchlistForUser(
@@ -27,16 +29,22 @@ export async function refreshWatchlistForUser(
   }
   if (films.length === 0) return { count: 0, ok: false, error: 'scrape vacío' };
 
-  let ids: string[] = [];
+  // Las que no resuelven a datos reales de TMDB quedan fuera del pozo (no se
+  // guardan ni se muestran). Si son muchas, el guard de diff de abajo frena el
+  // reemplazo: un fallo masivo de TMDB no vacía la watchlist.
+  const ids: string[] = [];
+  let unresolved = 0;
   try {
     for (const film of films) {
-      const { id } = await resolveMovie(film.title, film.year);
-      ids.push(id);
+      const resolved = await resolveMovie(film);
+      if (resolved) ids.push(resolved.id);
+      else unresolved++;
     }
   } catch (error: any) {
     return { count: 0, ok: false, error: error.message };
   }
   const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return { count: 0, ok: false, error: 'ninguna peli resolvió a TMDB' };
 
   const { data: current } = await supabase
     .from(TABLES.watchlistItems).select('movie_id').eq('user_id', userId);
@@ -72,7 +80,7 @@ export async function refreshWatchlistForUser(
     if (insertError) return { count: 0, ok: false, error: insertError.message };
   }
 
-  return { count: uniqueIds.length, ok: true };
+  return { count: uniqueIds.length, ok: true, ...(unresolved > 0 && { unresolved }) };
 }
 
 export async function refreshAllWatchlists(): Promise<Record<string, RefreshResult>> {
