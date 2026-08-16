@@ -6,6 +6,7 @@ let reenrichResult: any;
 let refreshThrows = false;
 let reenrichThrows = false;
 const updateMock = vi.fn();
+const upsertMock = vi.fn();
 
 vi.mock('./watchlists.js', () => ({
   refreshAllWatchlists: vi.fn(() =>
@@ -19,6 +20,10 @@ vi.mock('./movies.js', () => ({
 vi.mock('./db.js', () => ({
   supabase: {
     from: () => ({
+      upsert: (payload: any, options: any) => {
+        upsertMock(payload, options);
+        return Promise.resolve({ error: null });
+      },
       update: (payload: any) => {
         updateMock(payload);
         const eqResult: any = {
@@ -40,6 +45,7 @@ beforeEach(() => {
   refreshThrows = false;
   reenrichThrows = false;
   updateMock.mockClear();
+  upsertMock.mockClear();
 });
 
 describe('claimRefresh', () => {
@@ -50,6 +56,13 @@ describe('claimRefresh', () => {
   it('devuelve false cuando ya hay un refresh corriendo (no afecta filas)', async () => {
     claimData = [];
     expect(await claimRefresh()).toBe(false);
+  });
+  it('siembra la fila singleton sin pisar la existente', async () => {
+    await claimRefresh();
+    expect(upsertMock).toHaveBeenCalledWith(
+      { id: 1, status: 'idle' },
+      { onConflict: 'id', ignoreDuplicates: true },
+    );
   });
 });
 
